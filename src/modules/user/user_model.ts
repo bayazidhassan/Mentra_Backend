@@ -41,7 +41,7 @@ const userSchema = new Schema<TUser>(
     },
     isApproved: {
       type: Boolean,
-      default: true,
+      default: false,
     },
     isBanned: {
       type: Boolean,
