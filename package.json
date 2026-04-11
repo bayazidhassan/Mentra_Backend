@@ -23,9 +23,7 @@
     "express": "^5.2.1",
     "google-auth-library": "^10.6.2",
     "jsonwebtoken": "^9.0.3",
-    "mongoose": "^9.4.1",
-    "passport": "^0.7.0",
-    "passport-google-oauth20": "^2.0.0"
+    "mongoose": "^9.4.1"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
@@ -34,8 +32,6 @@
     "@types/express": "^5.0.6",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^25.5.2",
-    "@types/passport": "^1.0.17",
-    "@types/passport-google-oauth20": "^2.0.17",
     "@typescript-eslint/eslint-plugin": "^8.58.1",
     "@typescript-eslint/parser": "^8.58.1",
     "eslint": "^10.2.0",
