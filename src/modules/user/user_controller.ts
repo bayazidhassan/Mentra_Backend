@@ -1,43 +1,68 @@
-import { Request, RequestHandler, Response } from 'express';
+import { RequestHandler } from 'express';
+import { generateToken } from '../../utils/generateToken';
 import { userService } from './user_service';
 
-const userRegistration = async (req: Request, res: Response) => {
+const register: RequestHandler = async (req, res) => {
   try {
     const result = await userService.userRegistration(req.body);
 
     res.status(201).json({
       success: true,
       message: 'Registration successful.',
-      data: result,
+      data: {
+        _id: result._id,
+        name: result.name,
+        email: result.email,
+        role: result.role,
+      },
     });
   } catch (err) {
     res.status(400).json({
       success: false,
-      message: 'Registration failed.',
-      error: (err as Error).message,
+      message: (err as Error).message || 'Registration failed.',
+      data: null,
     });
   }
 };
 
-const userLogin: RequestHandler = async (req, res) => {
+const login: RequestHandler = async (req, res) => {
   try {
-    const result = await userService.userLogin(req.body);
+    const user = await userService.userLogin(req.body);
+
+    const token = generateToken({
+      id: user._id.toString(),
+      name: user.name,
+      email: user.email,
+      role: user.role,
+    });
+
+    res.cookie('token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
 
     res.status(200).json({
       success: true,
       message: 'Login successful.',
-      data: result,
+      data: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+      },
     });
   } catch (err) {
-    res.status(401).json({
+    res.status(400).json({
       success: false,
-      message: 'Login failed.',
-      error: (err as Error).message,
+      message: (err as Error).message || 'Login failed.',
+      data: null,
     });
   }
 };
 
 export const userController = {
-  userRegistration,
-  userLogin,
+  register,
+  login,
 };
