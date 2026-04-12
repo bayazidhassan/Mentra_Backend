@@ -89,7 +89,46 @@ Generate 6-8 steps. Each step should be clear, actionable and build on the previ
   return roadmap;
 };
 
+const createRoadmap = async (
+  learnerId: string,
+  payload: {
+    title: string;
+    description?: string;
+    goal: string;
+    steps: {
+      title: string;
+      description?: string;
+      resources?: string[];
+      order: number;
+    }[];
+  },
+) => {
+  const existing = await Roadmap.findOne({ learner: learnerId });
+  if (existing) {
+    throw new Error(
+      'You already have a roadmap. Delete it first to create a new one.',
+    );
+  }
+
+  const roadmap = await Roadmap.create({
+    learner: new Types.ObjectId(learnerId),
+    title: payload.title,
+    description: payload.description,
+    goal: payload.goal,
+    steps: payload.steps.map((step) => ({
+      ...step,
+      status: 'not_started',
+    })),
+    isAIGenerated: false,
+    totalSteps: payload.steps.length,
+    completedSteps: 0,
+  });
+
+  return roadmap;
+};
+
 export const roadmapService = {
   getMyRoadmap,
   generateRoadmap,
+  createRoadmap,
 };
