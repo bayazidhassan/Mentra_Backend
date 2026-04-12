@@ -5,5 +5,7 @@ import { roadmapController } from './roadmap_controller';
 const router = Router();
 
 router.get('/me', authMiddleware, roadmapController.getMyRoadmap);
+router.post('/generate', authMiddleware, roadmapController.generateRoadmap);
+router.post('/create', authMiddleware, roadmapController.createRoadmap);
 
 export const roadmapRoutes = router;
