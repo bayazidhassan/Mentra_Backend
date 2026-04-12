@@ -18,7 +18,20 @@ const getMe = async (id: string) => {
   return user;
 };
 
+const getRecommendedMentors = async (limit: number = 6) => {
+  const mentors = await User.find({
+    role: 'mentor',
+    isApproved: true,
+    isBanned: false,
+  })
+    .select('name email profileImage')
+    .limit(limit);
+
+  return mentors;
+};
+
 export const userService = {
   register,
   getMe,
+  getRecommendedMentors,
 };

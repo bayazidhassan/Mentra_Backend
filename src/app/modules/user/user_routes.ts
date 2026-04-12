@@ -6,5 +6,10 @@ const router = Router();
 
 router.post('/register', userController.register);
 router.get('/getMe', authMiddleware, userController.getMe);
+router.get(
+  '/mentors/recommended',
+  authMiddleware,
+  userController.getRecommendedMentors,
+);
 
 export const userRoutes = router;
