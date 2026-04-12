@@ -84,8 +84,65 @@ const createRoadmap: RequestHandler = async (req, res) => {
   }
 };
 
+const updateStepStatus: RequestHandler = async (req, res) => {
+  try {
+    const { id, stepId } = req.params as { id: string; stepId: string };
+    const { status } = req.body;
+
+    if (!status) {
+      res.status(400).json({
+        success: false,
+        message: 'Status is required.',
+        data: null,
+      });
+      return;
+    }
+
+    const roadmap = await roadmapService.updateStepStatus(
+      req.user?.id as string,
+      id,
+      stepId,
+      status,
+    );
+
+    res.status(200).json({
+      success: true,
+      message: 'Step status updated successfully.',
+      data: roadmap,
+    });
+  } catch (err) {
+    res.status(400).json({
+      success: false,
+      message: (err as Error).message || 'Failed to update step.',
+      data: null,
+    });
+  }
+};
+
+const deleteRoadmap: RequestHandler = async (req, res) => {
+  try {
+    const { id } = req.params as { id: string };
+
+    await roadmapService.deleteRoadmap(req.user?.id as string, id);
+
+    res.status(200).json({
+      success: true,
+      message: 'Roadmap deleted successfully.',
+      data: null,
+    });
+  } catch (err) {
+    res.status(400).json({
+      success: false,
+      message: (err as Error).message || 'Failed to delete roadmap.',
+      data: null,
+    });
+  }
+};
+
 export const roadmapController = {
   getMyRoadmap,
   generateRoadmap,
   createRoadmap,
+  updateStepStatus,
+  deleteRoadmap,
 };
