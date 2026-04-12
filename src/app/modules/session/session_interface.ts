@@ -1,3 +1,5 @@
+import { Types } from 'mongoose';
+
 export type TSessionStatus =
   | 'pending'
   | 'confirmed'
@@ -5,8 +7,8 @@ export type TSessionStatus =
   | 'cancelled';
 
 export type TSession = {
-  learner: string;
-  mentor: string;
+  learner: Types.ObjectId;
+  mentor: Types.ObjectId;
   title: string;
   description?: string;
   scheduledAt: Date;
