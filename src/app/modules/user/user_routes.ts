@@ -11,5 +11,7 @@ router.get(
   authMiddleware,
   userController.getRecommendedMentors,
 );
+router.get('/mentors', authMiddleware, userController.getMentors);
+router.get('/mentors/:id', authMiddleware, userController.getMentorById);
 
 export const userRoutes = router;
