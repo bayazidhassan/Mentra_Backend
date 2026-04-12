@@ -10,6 +10,15 @@ const register = async (
   return result;
 };
 
+const getMe = async (id: string) => {
+  const user = await User.findById(id).select('-password');
+  if (!user) {
+    throw new Error('User not found.');
+  }
+  return user;
+};
+
 export const userService = {
   register,
+  getMe,
 };
