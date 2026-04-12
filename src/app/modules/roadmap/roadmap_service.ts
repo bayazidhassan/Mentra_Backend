@@ -127,8 +127,56 @@ const createRoadmap = async (
   return roadmap;
 };
 
+const updateStepStatus = async (
+  learnerId: string,
+  roadmapId: string,
+  stepId: string,
+  status: 'not_started' | 'in_progress' | 'completed',
+) => {
+  const roadmap = await Roadmap.findOne({
+    _id: roadmapId,
+    learner: learnerId,
+  });
+
+  if (!roadmap) {
+    throw new Error('Roadmap not found.');
+  }
+
+  const step = roadmap.steps.find((s) => s._id?.toString() === stepId);
+  if (!step) {
+    throw new Error('Step not found.');
+  }
+
+  //update step status
+  step.status = status;
+
+  //recalculate completedSteps
+  roadmap.completedSteps = roadmap.steps.filter(
+    (s) => s.status === 'completed',
+  ).length;
+
+  await roadmap.save();
+
+  return roadmap;
+};
+
+const deleteRoadmap = async (learnerId: string, roadmapId: string) => {
+  const roadmap = await Roadmap.findOneAndDelete({
+    _id: roadmapId,
+    learner: learnerId,
+  });
+
+  if (!roadmap) {
+    throw new Error('Roadmap not found.');
+  }
+
+  return roadmap;
+};
+
 export const roadmapService = {
   getMyRoadmap,
   generateRoadmap,
   createRoadmap,
+  updateStepStatus,
+  deleteRoadmap,
 };

@@ -3,6 +3,7 @@ import { Types } from 'mongoose';
 export type TStepStatus = 'not_started' | 'in_progress' | 'completed';
 
 export type TStep = {
+  _id: Types.ObjectId;
   title: string;
   description?: string;
   resources?: string[];
