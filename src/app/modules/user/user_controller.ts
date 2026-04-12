@@ -59,8 +59,50 @@ const getRecommendedMentors: RequestHandler = async (req, res) => {
   }
 };
 
+const getMentors: RequestHandler = async (req, res) => {
+  try {
+    const { search, page, limit } = req.query;
+    const result = await userService.getMentors({
+      search: search as string,
+      page: page ? Number(page) : 1,
+      limit: limit ? Number(limit) : 9,
+    });
+    res.status(200).json({
+      success: true,
+      message: 'Mentors fetched successfully.',
+      data: result,
+    });
+  } catch (err) {
+    res.status(400).json({
+      success: false,
+      message: (err as Error).message || 'Failed to fetch mentors.',
+      data: null,
+    });
+  }
+};
+
+const getMentorById: RequestHandler = async (req, res) => {
+  try {
+    const { id } = req.params as { id: string };
+    const mentor = await userService.getMentorById(id);
+    res.status(200).json({
+      success: true,
+      message: 'Mentor fetched successfully.',
+      data: mentor,
+    });
+  } catch (err) {
+    res.status(404).json({
+      success: false,
+      message: (err as Error).message || 'Mentor not found.',
+      data: null,
+    });
+  }
+};
+
 export const userController = {
   register,
   getMe,
   getRecommendedMentors,
+  getMentors,
+  getMentorById,
 };
