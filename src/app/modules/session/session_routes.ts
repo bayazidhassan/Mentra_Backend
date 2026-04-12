@@ -4,10 +4,14 @@ import { sessionController } from './session_controller';
 
 const router = Router();
 
-router.get(
-  '/upcoming',
+router.get('/upcoming', authMiddleware, sessionController.getUpcomingSessions);
+router.get('/', authMiddleware, sessionController.getMySessions);
+router.get('/:id', authMiddleware, sessionController.getSessionById);
+router.post('/', authMiddleware, sessionController.bookSession);
+router.patch(
+  '/:id/status',
   authMiddleware,
-  sessionController.getUpcomingSessions,
+  sessionController.updateSessionStatus,
 );
 
 export const sessionRoutes = router;
