@@ -5,7 +5,7 @@ import { sessionController } from './session_controller';
 const router = Router();
 
 router.get(
-  '/upcomingSession',
+  '/upcoming',
   authMiddleware,
   sessionController.getUpcomingSessions,
 );
