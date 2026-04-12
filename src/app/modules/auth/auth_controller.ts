@@ -77,7 +77,22 @@ const googleLogin: RequestHandler = async (req, res) => {
   }
 };
 
+const logout: RequestHandler = (req, res) => {
+  res.clearCookie('accessToken', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+  });
+
+  res.status(200).json({
+    success: true,
+    message: 'Logged out successfully.',
+    data: null,
+  });
+};
+
 export const authController = {
   login,
   googleLogin,
+  logout,
 };
