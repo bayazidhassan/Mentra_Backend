@@ -79,10 +79,63 @@ const getMentorById = async (id: string) => {
   return mentor;
 };
 
+const updateProfile = async (
+  id: string,
+  payload: {
+    name?: string;
+    bio?: string;
+    skills?: string[];
+    experience?: string;
+    hourlyRate?: number;
+    availability?: string;
+  },
+) => {
+  const user = await User.findByIdAndUpdate(
+    id,
+    { ...payload },
+    { new: true, runValidators: true },
+  ).select('-password');
+
+  if (!user) {
+    throw new Error('User not found.');
+  }
+
+  return user;
+};
+
+const changePassword = async (
+  id: string,
+  payload: {
+    currentPassword: string;
+    newPassword: string;
+  },
+) => {
+  const user = await User.findById(id).select('+password');
+  if (!user) {
+    throw new Error('User not found.');
+  }
+
+  if (!user.password) {
+    throw new Error('Password not set. Please use Google login.');
+  }
+
+  const isMatch = await bcrypt.compare(payload.currentPassword, user.password);
+  if (!isMatch) {
+    throw new Error('Current password is incorrect.');
+  }
+
+  user.password = await bcrypt.hash(payload.newPassword, 12);
+  await user.save();
+
+  return { message: 'Password changed successfully.' };
+};
+
 export const userService = {
   register,
   getMe,
   getRecommendedMentors,
   getMentors,
   getMentorById,
+  updateProfile,
+  changePassword,
 };
