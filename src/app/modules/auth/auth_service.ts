@@ -61,6 +61,9 @@ const register = async (
     session.endSession();
 
     const safeUser = await User.findById(user._id).select('-password');
+    if (!safeUser) {
+      throw new Error('User not found.');
+    }
     return safeUser;
   } catch (error) {
     await session.abortTransaction();
@@ -74,9 +77,17 @@ const login = async (payload: Pick<TUser, 'email' | 'password'>) => {
   if (!user) {
     throw new Error('Invalid email or password.');
   }
-
   if (user.isBanned) {
     throw new Error('Your account has been banned.');
+  }
+  if (!user.isVerified) {
+    throw new Error('Your account has not been verified yet.');
+  }
+  if (user.role === 'mentor') {
+    const mentor = await Mentor.findOne({ userId: user._id });
+    if (!mentor?.isApproved) {
+      throw new Error('Your account has not been approved yet.');
+    }
   }
 
   const isMatch = await bcrypt.compare(
@@ -87,7 +98,11 @@ const login = async (payload: Pick<TUser, 'email' | 'password'>) => {
     throw new Error('Invalid email or password.');
   }
 
-  return user;
+  const safeUser = await User.findById(user._id).select('-password');
+  if (!safeUser) {
+    throw new Error('User not found.');
+  }
+  return safeUser;
 };
 
 const googleLogin = async (idToken: string) => {

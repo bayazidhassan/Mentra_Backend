@@ -9,7 +9,12 @@ const register: RequestHandler = async (req, res) => {
     res.status(201).json({
       success: true,
       message: 'Registration successful.',
-      data: result,
+      data: {
+        _id: result._id,
+        name: result.name,
+        email: result.email,
+        role: result.role,
+      },
     });
   } catch (err) {
     res.status(400).json({
