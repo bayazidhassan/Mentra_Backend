@@ -1,6 +1,6 @@
 import { Types } from 'mongoose';
 
-export type TLearnerProfile = {
+export type TLearner = {
   userId: Types.ObjectId;
   skills: string[];
   completedRoadmapsCount: number;
