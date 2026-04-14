@@ -21,7 +21,7 @@ const getMe = async (id: string) => {
 const getRecommendedMentors = async (limit: number = 6) => {
   const mentors = await User.find({
     role: 'mentor',
-    isApproved: false,
+    isApproved: true,
     isBanned: false,
   })
     .select('name email profileImage')
@@ -40,7 +40,7 @@ const getMentors = async (query: {
 
   const filter: any = {
     role: 'mentor',
-    isApproved: false,
+    isApproved: true,
     isBanned: false,
   };
 
@@ -68,7 +68,7 @@ const getMentorById = async (id: string) => {
   const mentor = await User.findOne({
     _id: id,
     role: 'mentor',
-    isApproved: false,
+    isApproved: true,
     isBanned: false,
   }).select('name email profileImage');
 
