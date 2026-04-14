@@ -5,6 +5,7 @@ import { userController } from './user_controller';
 const router = Router();
 
 router.get('/getMe', authMiddleware, userController.getMe);
+router.patch('/updateRole', authMiddleware, userController.updateRole);
 router.get(
   '/mentors/recommended',
   authMiddleware,

@@ -25,36 +25,17 @@ const register = async (
     const hashedPassword = await bcrypt.hash(password as string, 12);
 
     const newUser = await User.create(
-      [
-        {
-          ...payload,
-          password: hashedPassword,
-        },
-      ],
+      [{ ...payload, password: hashedPassword }],
       { session },
     );
 
     const user = newUser[0];
 
     if (role === 'learner') {
-      await Learner.create(
-        [
-          {
-            userId: user._id,
-          },
-        ],
-        { session },
-      );
+      await Learner.create([{ userId: user._id }], { session });
     }
     if (role === 'mentor') {
-      await Mentor.create(
-        [
-          {
-            userId: user._id,
-          },
-        ],
-        { session },
-      );
+      await Mentor.create([{ userId: user._id }], { session });
     }
 
     await session.commitTransaction();
@@ -121,7 +102,12 @@ const googleLogin = async (idToken: string) => {
 
   //check if user already exists with googleId
   let user = await User.findOne({ googleId });
-  if (user) return user;
+  if (user) {
+    return {
+      user,
+      isNewUser: false,
+    };
+  }
 
   //check if email already registered manually
   const existingUser = await User.findOne({ email });
@@ -129,19 +115,26 @@ const googleLogin = async (idToken: string) => {
     existingUser.googleId = googleId;
     existingUser.profileImage = picture;
     await existingUser.save();
-    return existingUser;
+    return {
+      user: existingUser,
+      isNewUser: false,
+    };
   }
 
-  //create new user
+  //create new user with default role
   user = await User.create({
     name,
     email,
     googleId,
     profileImage: picture,
-    role: 'learner',
+    role: 'learner', //temporary default
+    isVerified: true,
   });
 
-  return user;
+  return {
+    user,
+    isNewUser: true,
+  };
 };
 
 export const authService = {

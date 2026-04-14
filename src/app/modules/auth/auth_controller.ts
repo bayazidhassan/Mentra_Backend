@@ -33,7 +33,7 @@ const login: RequestHandler = async (req, res) => {
       id: user._id.toString(),
       name: user.name,
       email: user.email,
-      role: user.role,
+      role: user.role as string,
     });
 
     res.cookie('accessToken', token, {
@@ -65,7 +65,7 @@ const login: RequestHandler = async (req, res) => {
 const googleLogin: RequestHandler = async (req, res) => {
   try {
     const { idToken } = req.body;
-    const user = await authService.googleLogin(idToken);
+    const { user, isNewUser } = await authService.googleLogin(idToken);
 
     const token = generateToken({
       id: user._id.toString(),
@@ -89,6 +89,7 @@ const googleLogin: RequestHandler = async (req, res) => {
         name: user.name,
         email: user.email,
         role: user.role,
+        isNewUser,
       },
     });
   } catch (err) {

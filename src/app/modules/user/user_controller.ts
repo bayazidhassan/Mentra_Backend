@@ -1,4 +1,5 @@
 import { RequestHandler } from 'express';
+import { generateToken } from '../../utils/generateToken';
 import { userService } from './user_service';
 
 const getMe: RequestHandler = async (req, res) => {
@@ -7,12 +8,68 @@ const getMe: RequestHandler = async (req, res) => {
     res.status(200).json({
       success: true,
       message: 'User fetched successfully.',
-      data: user,
+      data: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        profileImage: user.profileImage || null,
+      },
     });
   } catch (err) {
     res.status(404).json({
       success: false,
       message: (err as Error).message || 'User not found.',
+      data: null,
+    });
+  }
+};
+
+const updateRole: RequestHandler = async (req, res) => {
+  try {
+    const { role } = req.body;
+    const userId = req.user?.id;
+    console.log(userId);
+
+    if (!userId) {
+      res.status(401).json({
+        success: false,
+        message: 'Unauthorized',
+        data: null,
+      });
+      return;
+    }
+
+    const user = await userService.updateRole(userId, role);
+
+    const token = generateToken({
+      id: user._id.toString(),
+      name: user.name,
+      email: user.email,
+      role: user.role,
+    });
+
+    res.cookie('accessToken', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'Role updated successfully.',
+      data: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+      },
+    });
+  } catch (err) {
+    res.status(400).json({
+      success: false,
+      message: (err as Error).message || 'Failed to update role.',
       data: null,
     });
   }
@@ -78,6 +135,7 @@ const getMentorById: RequestHandler = async (req, res) => {
 
 export const userController = {
   getMe,
+  updateRole,
   getRecommendedMentors,
   getMentors,
   getMentorById,

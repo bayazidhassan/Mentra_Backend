@@ -1,4 +1,7 @@
 import bcrypt from 'bcryptjs';
+import mongoose from 'mongoose';
+import { Learner } from '../learner/learner_model';
+import { Mentor } from '../mentor/mentor_model';
 import { User } from './user_model';
 
 const getMe = async (id: string) => {
@@ -7,6 +10,49 @@ const getMe = async (id: string) => {
     throw new Error('User not found.');
   }
   return user;
+};
+
+export const updateRole = async (
+  userId: string,
+  role: 'learner' | 'mentor',
+) => {
+  if (!role || !['learner', 'mentor'].includes(role)) {
+    throw new Error('Role must be learner or mentor.');
+  }
+
+  const session = await mongoose.startSession();
+
+  try {
+    session.startTransaction();
+
+    const user = await User.findById(userId).session(session);
+    if (!user) {
+      throw new Error('User not found.');
+    }
+
+    user.role = role;
+    await user.save({ session });
+
+    if (role === 'learner') {
+      await Learner.create([{ userId: user._id }], { session });
+    }
+    if (role === 'mentor') {
+      await Mentor.create([{ userId: user._id }], { session });
+    }
+
+    await session.commitTransaction();
+    session.endSession();
+
+    const safeUser = await User.findById(userId).select('-password');
+    if (!safeUser) {
+      throw new Error('User not found.');
+    }
+    return safeUser;
+  } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
+    throw error;
+  }
 };
 
 const getRecommendedMentors = async (limit: number = 6) => {
@@ -123,6 +169,7 @@ const changePassword = async (
 
 export const userService = {
   getMe,
+  updateRole,
   getRecommendedMentors,
   getMentors,
   getMentorById,
