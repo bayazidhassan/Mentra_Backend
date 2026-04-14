@@ -1,7 +1,9 @@
 import { Types } from 'mongoose';
 
+export type TDays = 'Sun' | 'Mon' | 'Tue' | 'Wed' | 'Thu' | 'Fri' | 'Sat';
+
 export type TAvailability = {
-  day: 'Sun' | 'Mon' | 'Tue' | 'Wed' | 'Thu' | 'Fri' | 'Sat';
+  day: TDays;
   startTime: string;
   endTime: string;
 };

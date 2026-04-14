@@ -36,4 +36,4 @@ const learnerSchema = new Schema<TLearner>(
   },
 );
 
-export const LearnerModel = model<TLearner>('Learner', learnerSchema);
+export const Learner = model<TLearner>('Learner', learnerSchema);
