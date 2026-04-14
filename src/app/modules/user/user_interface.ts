@@ -11,4 +11,5 @@ export type TUser = {
   phone?: string;
   isVerified: boolean;
   isBanned: boolean;
+  lastLogin?: Date;
 };
