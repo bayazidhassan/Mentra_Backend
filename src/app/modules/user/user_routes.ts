@@ -4,7 +4,6 @@ import { userController } from './user_controller';
 
 const router = Router();
 
-router.post('/register', userController.register);
 router.get('/getMe', authMiddleware, userController.getMe);
 router.get(
   '/mentors/recommended',

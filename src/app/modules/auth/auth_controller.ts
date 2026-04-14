@@ -2,6 +2,24 @@ import { RequestHandler } from 'express';
 import { generateToken } from '../../utils/generateToken';
 import { authService } from './auth_service';
 
+const register: RequestHandler = async (req, res) => {
+  try {
+    const result = await authService.register(req.body);
+
+    res.status(201).json({
+      success: true,
+      message: 'Registration successful.',
+      data: result,
+    });
+  } catch (err) {
+    res.status(400).json({
+      success: false,
+      message: (err as Error).message || 'Registration failed.',
+      data: null,
+    });
+  }
+};
+
 const login: RequestHandler = async (req, res) => {
   try {
     const user = await authService.login(req.body);
@@ -92,6 +110,7 @@ const logout: RequestHandler = (req, res) => {
 };
 
 export const authController = {
+  register,
   login,
   googleLogin,
   logout,
