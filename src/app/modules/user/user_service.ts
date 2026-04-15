@@ -12,10 +12,7 @@ const getMe = async (id: string) => {
   return user;
 };
 
-export const updateRole = async (
-  userId: string,
-  role: 'learner' | 'mentor',
-) => {
+const updateRole = async (userId: string, role: 'learner' | 'mentor') => {
   if (!role || !['learner', 'mentor'].includes(role)) {
     throw new Error('Role must be learner or mentor.');
   }
@@ -29,8 +26,15 @@ export const updateRole = async (
     if (!user) {
       throw new Error('User not found.');
     }
+    if (!user.google) {
+      throw new Error('Google data not found.');
+    }
+    if (user.google.roleUpdated) {
+      throw new Error('Role already updated.');
+    }
 
     user.role = role;
+    user.google.roleUpdated = true;
     await user.save({ session });
 
     if (role === 'learner') {

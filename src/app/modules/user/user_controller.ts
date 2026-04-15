@@ -13,7 +13,11 @@ const getMe: RequestHandler = async (req, res) => {
         name: user.name,
         email: user.email,
         role: user.role,
-        profileImage: user.profileImage || null,
+        profileImage: user.profileImage,
+        google: {
+          googleId: user.google?.googleId,
+          roleUpdated: user.google?.roleUpdated,
+        },
       },
     });
   } catch (err) {
@@ -29,12 +33,11 @@ const updateRole: RequestHandler = async (req, res) => {
   try {
     const { role } = req.body;
     const userId = req.user?.id;
-    console.log(userId);
 
     if (!userId) {
       res.status(401).json({
         success: false,
-        message: 'Unauthorized',
+        message: 'Unauthorized.',
         data: null,
       });
       return;

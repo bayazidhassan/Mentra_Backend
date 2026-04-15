@@ -29,8 +29,14 @@ const userSchema = new Schema<TUser>(
       type: String,
       select: false,
     },
-    googleId: {
-      type: String,
+    google: {
+      googleId: {
+        type: String,
+      },
+      roleUpdated: {
+        type: Boolean,
+        default: false,
+      },
     },
     profileImage: {
       type: String,

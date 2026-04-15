@@ -1,11 +1,15 @@
 export type TRole = 'learner' | 'mentor' | 'admin';
+export type TGoogle = {
+  googleId: string;
+  roleUpdated: boolean;
+};
 
 export type TUser = {
   name: string;
   email: string;
   role: TRole;
   password?: string;
-  googleId?: string;
+  google?: TGoogle;
   profileImage?: string;
   bio?: string;
   phone?: string;

@@ -101,7 +101,7 @@ const googleLogin = async (idToken: string) => {
   const { sub: googleId, email, name, picture } = payload;
 
   //check if user already exists with googleId
-  let user = await User.findOne({ googleId });
+  let user = await User.findOne({ 'google.googleId': googleId });
   if (user) {
     return {
       user,
@@ -112,8 +112,12 @@ const googleLogin = async (idToken: string) => {
   //check if email already registered manually
   const existingUser = await User.findOne({ email });
   if (existingUser) {
-    existingUser.googleId = googleId;
+    existingUser.google = {
+      googleId,
+      roleUpdated: true,
+    };
     existingUser.profileImage = picture;
+    existingUser.isVerified = true;
     await existingUser.save();
     return {
       user: existingUser,
@@ -125,7 +129,10 @@ const googleLogin = async (idToken: string) => {
   user = await User.create({
     name,
     email,
-    googleId,
+    google: {
+      googleId,
+      roleUpdated: false,
+    },
     profileImage: picture,
     role: 'learner', //temporary default
     isVerified: true,
