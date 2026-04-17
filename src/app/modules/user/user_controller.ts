@@ -19,7 +19,7 @@ const getMe: RequestHandler = async (req, res) => {
   }
 };
 
-const updateRole: RequestHandler = async (req, res) => {
+const setRole: RequestHandler = async (req, res) => {
   try {
     const { role } = req.body;
     const userId = req.user?.id;
@@ -33,7 +33,7 @@ const updateRole: RequestHandler = async (req, res) => {
       return;
     }
 
-    const user = await userService.updateRole(userId, role);
+    const user = await userService.setRole(userId, role);
 
     const token = generateToken({
       id: user._id.toString(),
@@ -48,7 +48,6 @@ const updateRole: RequestHandler = async (req, res) => {
       sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
-
     res.status(200).json({
       success: true,
       message: 'Role updated successfully.',
@@ -57,6 +56,7 @@ const updateRole: RequestHandler = async (req, res) => {
         name: user.name,
         email: user.email,
         role: user.role,
+        profileImage: user.profileImage,
       },
     });
   } catch (err) {
@@ -84,6 +84,26 @@ const updateProfile: RequestHandler = async (req, res) => {
     res.status(400).json({
       success: false,
       message: (err as Error).message || 'Failed to update profile.',
+      data: null,
+    });
+  }
+};
+
+const changePassword: RequestHandler = async (req, res) => {
+  try {
+    const result = await userService.changePassword(
+      req.user?.id as string,
+      req.body,
+    );
+    res.status(200).json({
+      success: true,
+      message: result.message,
+      data: null,
+    });
+  } catch (err) {
+    res.status(400).json({
+      success: false,
+      message: (err as Error).message || 'Failed to change password.',
       data: null,
     });
   }
@@ -149,8 +169,9 @@ const getMentorById: RequestHandler = async (req, res) => {
 
 export const userController = {
   getMe,
-  updateRole,
+  setRole,
   updateProfile,
+  changePassword,
   getRecommendedMentors,
   getMentors,
   getMentorById,

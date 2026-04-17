@@ -49,7 +49,7 @@ const getMe = async (id: string) => {
   };
 };
 
-const updateRole = async (userId: string, role: 'learner' | 'mentor') => {
+const setRole = async (userId: string, role: 'learner' | 'mentor') => {
   if (!role || !['learner', 'mentor'].includes(role)) {
     throw new Error('Role must be learner or mentor.');
   }
@@ -182,6 +182,38 @@ const updateProfile = async (
   }
 };
 
+const changePassword = async (
+  id: string,
+  payload: {
+    currentPassword: string;
+    newPassword: string;
+  },
+) => {
+  const { currentPassword, newPassword } = payload;
+  const user = await User.findById(id).select('+password');
+  if (!user) {
+    throw new Error('User not found.');
+  }
+
+  if (!user.password) {
+    throw new Error('Password not set. Please use Google login.');
+  }
+
+  if (newPassword.length < 8) {
+    throw new Error('New password must be at least 8 characters.');
+  }
+
+  const isMatch = await bcrypt.compare(currentPassword, user.password);
+  if (!isMatch) {
+    throw new Error('Current password is incorrect.');
+  }
+
+  user.password = await bcrypt.hash(newPassword, 12);
+  await user.save();
+
+  return { message: 'Password changed successfully.' };
+};
+
 const getRecommendedMentors = async (limit: number = 6) => {
   const mentors = await User.find({
     role: 'mentor',
@@ -243,39 +275,12 @@ const getMentorById = async (id: string) => {
   return mentor;
 };
 
-const changePassword = async (
-  id: string,
-  payload: {
-    currentPassword: string;
-    newPassword: string;
-  },
-) => {
-  const user = await User.findById(id).select('+password');
-  if (!user) {
-    throw new Error('User not found.');
-  }
-
-  if (!user.password) {
-    throw new Error('Password not set. Please use Google login.');
-  }
-
-  const isMatch = await bcrypt.compare(payload.currentPassword, user.password);
-  if (!isMatch) {
-    throw new Error('Current password is incorrect.');
-  }
-
-  user.password = await bcrypt.hash(payload.newPassword, 12);
-  await user.save();
-
-  return { message: 'Password changed successfully.' };
-};
-
 export const userService = {
   getMe,
-  updateRole,
+  setRole,
+  updateProfile,
+  changePassword,
   getRecommendedMentors,
   getMentors,
   getMentorById,
-  updateProfile,
-  changePassword,
 };

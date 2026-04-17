@@ -6,13 +6,14 @@ import { userController } from './user_controller';
 const router = Router();
 
 router.get('/getMe', authMiddleware, userController.getMe);
-router.patch('/updateRole', authMiddleware, userController.updateRole);
+router.patch('/setRole', authMiddleware, userController.setRole);
 router.patch(
   '/updateProfile',
   authMiddleware,
   upload.single('profileImage'),
   userController.updateProfile,
 );
+router.patch('/changePassword', authMiddleware, userController.changePassword);
 router.get(
   '/mentors/recommended',
   authMiddleware,
