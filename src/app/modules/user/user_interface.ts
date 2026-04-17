@@ -11,7 +11,6 @@ export type TUser = {
   password?: string;
   google?: TGoogle;
   profileImage?: string;
-  bio?: string;
   phone?: string;
   isVerified: boolean;
   isBanned: boolean;

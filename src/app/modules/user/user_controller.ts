@@ -8,17 +8,7 @@ const getMe: RequestHandler = async (req, res) => {
     res.status(200).json({
       success: true,
       message: 'User fetched successfully.',
-      data: {
-        _id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        profileImage: user.profileImage,
-        google: {
-          googleId: user.google?.googleId,
-          roleUpdated: user.google?.roleUpdated,
-        },
-      },
+      data: user,
     });
   } catch (err) {
     res.status(404).json({
@@ -73,6 +63,27 @@ const updateRole: RequestHandler = async (req, res) => {
     res.status(400).json({
       success: false,
       message: (err as Error).message || 'Failed to update role.',
+      data: null,
+    });
+  }
+};
+
+const updateProfile: RequestHandler = async (req, res) => {
+  try {
+    const user = await userService.updateProfile(
+      req.user?.id as string,
+      req.body,
+      req.file?.buffer,
+    );
+    res.status(200).json({
+      success: true,
+      message: 'Profile updated successfully.',
+      data: user,
+    });
+  } catch (err) {
+    res.status(400).json({
+      success: false,
+      message: (err as Error).message || 'Failed to update profile.',
       data: null,
     });
   }
@@ -139,6 +150,7 @@ const getMentorById: RequestHandler = async (req, res) => {
 export const userController = {
   getMe,
   updateRole,
+  updateProfile,
   getRecommendedMentors,
   getMentors,
   getMentorById,

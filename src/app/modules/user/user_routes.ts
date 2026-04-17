@@ -1,11 +1,18 @@
 import { Router } from 'express';
 import { authMiddleware } from '../../../middleware/authMiddleware';
+import { upload } from '../../utils/uploadImageToCloudinary';
 import { userController } from './user_controller';
 
 const router = Router();
 
 router.get('/getMe', authMiddleware, userController.getMe);
 router.patch('/updateRole', authMiddleware, userController.updateRole);
+router.patch(
+  '/updateProfile',
+  authMiddleware,
+  upload.single('profileImage'),
+  userController.updateProfile,
+);
 router.get(
   '/mentors/recommended',
   authMiddleware,

@@ -29,6 +29,9 @@ const userSchema = new Schema<TUser>(
       type: String,
       select: false,
     },
+    phone: {
+      type: String,
+    },
     google: {
       googleId: {
         type: String,

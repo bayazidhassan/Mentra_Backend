@@ -12,7 +12,6 @@ export type TMentor = {
   userId: Types.ObjectId;
   bio?: string;
   experience?: string;
-  skills?: string[];
   hourlyRate?: number;
   availability?: TAvailability[];
   rating?: number;

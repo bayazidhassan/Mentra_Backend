@@ -1,5 +1,7 @@
 import bcrypt from 'bcryptjs';
 import mongoose from 'mongoose';
+import { TProfilePayload } from '../../../types/profile';
+import uploadImageToCloudinary from '../../utils/uploadImageToCloudinary';
 import { Learner } from '../learner/learner_model';
 import { Mentor } from '../mentor/mentor_model';
 import { User } from './user_model';
@@ -9,7 +11,42 @@ const getMe = async (id: string) => {
   if (!user) {
     throw new Error('User not found.');
   }
-  return user;
+
+  let roleData: any = {};
+
+  //learner extra data
+  if (user.role === 'learner') {
+    const learner = await Learner.findOne({ userId: id });
+    if (learner) {
+      roleData = {
+        skills: learner.skills,
+      };
+    }
+  }
+  //mentor extra data
+  if (user.role === 'mentor') {
+    const mentor = await Mentor.findOne({ userId: id });
+    if (mentor) {
+      roleData = {
+        bio: mentor.bio,
+        experience: mentor.experience,
+        hourlyRate: mentor.hourlyRate,
+        availability: mentor.availability,
+      };
+    }
+  }
+
+  //merge everything
+  return {
+    _id: user._id,
+    name: user.name,
+    email: user.email,
+    role: user.role,
+    profileImage: user.profileImage,
+    phone: user.phone,
+    google: user.google,
+    ...roleData,
+  };
 };
 
 const updateRole = async (userId: string, role: 'learner' | 'mentor') => {
@@ -56,6 +93,92 @@ const updateRole = async (userId: string, role: 'learner' | 'mentor') => {
     await session.abortTransaction();
     session.endSession();
     throw error;
+  }
+};
+
+const updateProfile = async (
+  id: string,
+  payload: TProfilePayload,
+  buffer?: Buffer,
+) => {
+  const session = await mongoose.startSession();
+
+  try {
+    session.startTransaction();
+
+    const user = await User.findById(id).session(session);
+    if (!user) {
+      throw new Error('User not found.');
+    }
+
+    let profileImage: string | undefined;
+    if (buffer) {
+      profileImage = await uploadImageToCloudinary(id, buffer);
+    }
+
+    //Update user fields
+    user.name = payload.name ?? user.name;
+    user.phone = payload.phone ?? user.phone;
+    if (profileImage) {
+      user.profileImage = profileImage;
+    }
+    await user.save({ session });
+
+    //update role based
+    let learnerData = null;
+    let mentorData = null;
+    if (user.role === 'learner') {
+      const learner = await Learner.findOne({ userId: id }).session(session);
+      if (!learner) {
+        throw new Error('Learner not found.');
+      }
+      if (payload.skills) {
+        learner.skills = JSON.parse(payload.skills);
+      }
+      await learner.save({ session });
+      learnerData = learner;
+    }
+
+    if (user.role === 'mentor') {
+      const mentor = await Mentor.findOne({ userId: id }).session(session);
+      if (!mentor) {
+        throw new Error('Mentor not found.');
+      }
+      if (payload.bio) mentor.bio = payload.bio;
+      if (payload.experience) mentor.experience = payload.experience;
+      if (payload.hourlyRate) mentor.hourlyRate = Number(payload.hourlyRate);
+      if (payload.availability)
+        mentor.availability = JSON.parse(payload.availability);
+      await mentor.save({ session });
+      mentorData = mentor;
+    }
+
+    await session.commitTransaction();
+    session.endSession();
+
+    //return updated user + learner/mentor
+    const updatedUser = await User.findById(id);
+    const baseUser = updatedUser!.toObject();
+    if (user.role === 'learner' && learnerData) {
+      return {
+        ...baseUser,
+        skills: learnerData.skills,
+      };
+    }
+    if (user.role === 'mentor' && mentorData) {
+      return {
+        ...baseUser,
+        bio: mentorData.bio,
+        experience: mentorData.experience,
+        hourlyRate: mentorData.hourlyRate,
+        availability: mentorData.availability,
+      };
+    }
+    return baseUser;
+  } catch (err) {
+    await session.abortTransaction();
+    session.endSession();
+    throw err;
   }
 };
 
@@ -118,30 +241,6 @@ const getMentorById = async (id: string) => {
   }
 
   return mentor;
-};
-
-const updateProfile = async (
-  id: string,
-  payload: {
-    name?: string;
-    bio?: string;
-    skills?: string[];
-    experience?: string;
-    hourlyRate?: number;
-    availability?: string;
-  },
-) => {
-  const user = await User.findByIdAndUpdate(
-    id,
-    { ...payload },
-    { new: true, runValidators: true },
-  ).select('-password');
-
-  if (!user) {
-    throw new Error('User not found.');
-  }
-
-  return user;
 };
 
 const changePassword = async (

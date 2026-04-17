@@ -32,10 +32,6 @@ const mentorSchema = new Schema<TMentor>(
     experience: {
       type: String,
     },
-    skills: {
-      type: [String],
-      default: [],
-    },
     hourlyRate: {
       type: Number,
     },
