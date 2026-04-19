@@ -1,6 +1,12 @@
 import bcrypt from 'bcryptjs';
 import { OAuth2Client } from 'google-auth-library';
+import jwt from 'jsonwebtoken';
 import mongoose from 'mongoose';
+import { TAuthUser } from '../../../middleware/authMiddleware';
+import {
+  createAccessToken,
+  createRefreshToken,
+} from '../../utils/generateToken';
 import { Learner } from '../learner/learner_model';
 import { Mentor } from '../mentor/mentor_model';
 import { TUser } from '../user/user_interface';
@@ -71,10 +77,7 @@ const login = async (payload: Pick<TUser, 'email' | 'password'>) => {
     }
   }
 
-  const isMatch = await bcrypt.compare(
-    payload.password as string,
-    user.password as string,
-  );
+  const isMatch = await bcrypt.compare(payload.password!, user.password!);
   if (!isMatch) {
     throw new Error('Invalid email or password.');
   }
@@ -83,7 +86,21 @@ const login = async (payload: Pick<TUser, 'email' | 'password'>) => {
   if (!safeUser) {
     throw new Error('User not found.');
   }
-  return safeUser;
+
+  const accessToken = createAccessToken({
+    id: user._id.toString(),
+    name: user.name,
+    email: user.email,
+    role: user.role,
+  });
+  const refreshToken = createRefreshToken({
+    id: user._id.toString(),
+    name: user.name,
+    email: user.email,
+    role: user.role,
+  });
+
+  return { safeUser, accessToken, refreshToken };
 };
 
 const googleLogin = async (idToken: string) => {
@@ -137,10 +154,85 @@ const googleLogin = async (idToken: string) => {
     role: 'learner', //temporary default
     isVerified: true,
   });
+  if (!user) {
+    throw new Error('Failed to create user.');
+  }
+
+  const accessToken = createAccessToken({
+    id: user._id.toString(),
+    name: user.name,
+    email: user.email,
+    role: user.role,
+  });
+  const refreshToken = createRefreshToken({
+    id: user._id.toString(),
+    name: user.name,
+    email: user.email,
+    role: user.role,
+  });
 
   return {
     user,
+    accessToken,
+    refreshToken,
     isNewUser: true,
+  };
+};
+
+const setRole = async (userId: string, role: 'learner' | 'mentor') => {
+  if (!role || !['learner', 'mentor'].includes(role)) {
+    throw new Error('Role must be learner or mentor.');
+  }
+
+  const session = await mongoose.startSession();
+
+  try {
+    session.startTransaction();
+
+    const user = await User.findById(userId).session(session);
+    if (!user) {
+      throw new Error('User not found.');
+    }
+    if (!user.google) {
+      throw new Error('Google data not found.');
+    }
+    if (user.google.roleUpdated) {
+      throw new Error('Role already updated.');
+    }
+
+    user.role = role;
+    user.google.roleUpdated = true;
+    await user.save({ session });
+
+    if (role === 'learner') {
+      await Learner.create([{ userId: user._id }], { session });
+    }
+    if (role === 'mentor') {
+      await Mentor.create([{ userId: user._id }], { session });
+    }
+
+    await session.commitTransaction();
+    session.endSession();
+  } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
+    throw error;
+  }
+};
+
+const refreshToken = async (token: string) => {
+
+  const decoded = jwt.verify(token, process.env.REFRESH_TOKEN!) as TAuthUser;
+
+  const accessToken = createAccessToken({
+    id: decoded.id,
+    name: decoded.name,
+    email: decoded.email,
+    role: decoded.role,
+  });
+
+  return {
+    accessToken,
   };
 };
 
@@ -148,4 +240,6 @@ export const authService = {
   register,
   login,
   googleLogin,
+  setRole,
+  refreshToken,
 };

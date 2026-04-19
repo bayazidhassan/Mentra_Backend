@@ -22,21 +22,18 @@ export const authMiddleware = (
   next: NextFunction,
 ) => {
   try {
-    const token = req.cookies?.accessToken;
+    const authHeader = req.headers.authorization;
 
-    if (!token) {
-      res.status(401).json({
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({
         success: false,
-        message: 'Unauthorized. Please login.',
-        data: null,
+        message: 'Unauthorized',
       });
-      return;
     }
 
-    const decoded = jwt.verify(
-      token,
-      process.env.JWT_SECRET as string,
-    ) as TAuthUser;
+    const token = authHeader.split(' ')[1];
+
+    const decoded = jwt.verify(token, process.env.ACCESS_TOKEN!) as TAuthUser;
 
     req.user = decoded;
     next();

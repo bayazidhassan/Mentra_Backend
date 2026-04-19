@@ -49,53 +49,6 @@ const getMe = async (id: string) => {
   };
 };
 
-const setRole = async (userId: string, role: 'learner' | 'mentor') => {
-  if (!role || !['learner', 'mentor'].includes(role)) {
-    throw new Error('Role must be learner or mentor.');
-  }
-
-  const session = await mongoose.startSession();
-
-  try {
-    session.startTransaction();
-
-    const user = await User.findById(userId).session(session);
-    if (!user) {
-      throw new Error('User not found.');
-    }
-    if (!user.google) {
-      throw new Error('Google data not found.');
-    }
-    if (user.google.roleUpdated) {
-      throw new Error('Role already updated.');
-    }
-
-    user.role = role;
-    user.google.roleUpdated = true;
-    await user.save({ session });
-
-    if (role === 'learner') {
-      await Learner.create([{ userId: user._id }], { session });
-    }
-    if (role === 'mentor') {
-      await Mentor.create([{ userId: user._id }], { session });
-    }
-
-    await session.commitTransaction();
-    session.endSession();
-
-    const safeUser = await User.findById(userId).select('-password');
-    if (!safeUser) {
-      throw new Error('User not found.');
-    }
-    return safeUser;
-  } catch (error) {
-    await session.abortTransaction();
-    session.endSession();
-    throw error;
-  }
-};
-
 const updateProfile = async (
   id: string,
   payload: TProfilePayload,
@@ -277,7 +230,6 @@ const getMentorById = async (id: string) => {
 
 export const userService = {
   getMe,
-  setRole,
   updateProfile,
   changePassword,
   getRecommendedMentors,

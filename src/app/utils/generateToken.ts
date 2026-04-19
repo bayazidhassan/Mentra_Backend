@@ -7,8 +7,14 @@ type TTokenPayload = {
   role: string;
 };
 
-export const generateToken = (payload: TTokenPayload) => {
-  return jwt.sign(payload, process.env.JWT_SECRET as string, {
+export const createAccessToken = (payload: TTokenPayload) => {
+  return jwt.sign(payload, process.env.ACCESS_TOKEN!, {
+    expiresIn: '15m',
+  });
+};
+
+export const createRefreshToken = (payload: TTokenPayload) => {
+  return jwt.sign(payload, process.env.REFRESH_TOKEN!, {
     expiresIn: '7d',
   });
 };
