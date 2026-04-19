@@ -104,59 +104,66 @@ const login = async (payload: Pick<TUser, 'email' | 'password'>) => {
 };
 
 const googleLogin = async (idToken: string) => {
-  //verify ID token
   const ticket = await client.verifyIdToken({
     idToken,
     audience: process.env.GOOGLE_CLIENT_ID as string,
   });
 
   const payload = ticket.getPayload();
-  if (!payload) {
-    throw new Error('Invalid Google token.');
-  }
+  if (!payload) throw new Error('Invalid Google token.');
 
   const { sub: googleId, email, name, picture } = payload;
 
-  //check if user already exists with googleId
+  // existing google user
   let user = await User.findOne({ 'google.googleId': googleId });
   if (user) {
-    return {
-      user,
-      isNewUser: false,
-    };
+    const accessToken = createAccessToken({
+      id: user._id.toString(),
+      name: user.name,
+      email: user.email,
+      role: user.role,
+    });
+    const refreshToken = createRefreshToken({
+      id: user._id.toString(),
+      name: user.name,
+      email: user.email,
+      role: user.role,
+    });
+    return { user, accessToken, refreshToken, isNewUser: false };
   }
 
-  //check if email already registered manually
+  // existing email user
   const existingUser = await User.findOne({ email });
   if (existingUser) {
-    existingUser.google = {
-      googleId,
-      roleUpdated: true,
-    };
+    existingUser.google = { googleId, roleUpdated: true };
     existingUser.profileImage = picture;
     existingUser.isVerified = true;
     await existingUser.save();
-    return {
-      user: existingUser,
-      isNewUser: false,
-    };
+    const accessToken = createAccessToken({
+      id: existingUser._id.toString(),
+      name: existingUser.name,
+      email: existingUser.email,
+      role: existingUser.role,
+    });
+    const refreshToken = createRefreshToken({
+      id: existingUser._id.toString(),
+      name: existingUser.name,
+      email: existingUser.email,
+      role: existingUser.role,
+    });
+    return { user: existingUser, accessToken, refreshToken, isNewUser: false };
   }
 
-  //create new user with default role
+  // new user
   user = await User.create({
     name,
     email,
-    google: {
-      googleId,
-      roleUpdated: false,
-    },
+    google: { googleId, roleUpdated: false },
     profileImage: picture,
-    role: 'learner', //temporary default
+    role: 'learner',
     isVerified: true,
   });
-  if (!user) {
-    throw new Error('Failed to create user.');
-  }
+  if (!user) throw new Error('Failed to create user.');
 
   const accessToken = createAccessToken({
     id: user._id.toString(),
@@ -171,12 +178,7 @@ const googleLogin = async (idToken: string) => {
     role: user.role,
   });
 
-  return {
-    user,
-    accessToken,
-    refreshToken,
-    isNewUser: true,
-  };
+  return { user, accessToken, refreshToken, isNewUser: true };
 };
 
 const setRole = async (userId: string, role: 'learner' | 'mentor') => {
