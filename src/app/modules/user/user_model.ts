@@ -38,7 +38,6 @@ const userSchema = new Schema<TUser>(
       },
       roleUpdated: {
         type: Boolean,
-        default: false,
       },
     },
     profileImage: {

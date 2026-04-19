@@ -213,6 +213,21 @@ const setRole = async (userId: string, role: 'learner' | 'mentor') => {
 
     await session.commitTransaction();
     session.endSession();
+
+    const accessToken = createAccessToken({
+      id: user._id.toString(),
+      name: user.name,
+      email: user.email,
+      role: user.role,
+    });
+    const refreshToken = createRefreshToken({
+      id: user._id.toString(),
+      name: user.name,
+      email: user.email,
+      role: user.role,
+    });
+
+    return { role, accessToken, refreshToken };
   } catch (error) {
     await session.abortTransaction();
     session.endSession();
@@ -221,7 +236,6 @@ const setRole = async (userId: string, role: 'learner' | 'mentor') => {
 };
 
 const refreshToken = async (token: string) => {
-
   const decoded = jwt.verify(token, process.env.REFRESH_TOKEN!) as TAuthUser;
 
   const accessToken = createAccessToken({
@@ -231,9 +245,7 @@ const refreshToken = async (token: string) => {
     role: decoded.role,
   });
 
-  return {
-    accessToken,
-  };
+  return { accessToken };
 };
 
 export const authService = {

@@ -33,7 +33,8 @@ const login: RequestHandler = async (req, res) => {
     res.cookie('refreshToken', refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+      //sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+      sameSite: 'lax' as const,
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
@@ -75,7 +76,8 @@ const googleLogin: RequestHandler = async (req, res) => {
     res.cookie('refreshToken', refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+      //sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+      sameSite: 'lax' as const,
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
@@ -110,12 +112,23 @@ const setRole: RequestHandler = async (req, res) => {
     const { role } = req.body;
     const userId = req.user?.id as string;
 
-    await authService.setRole(userId, role);
+    const {
+      role: selectedRole,
+      accessToken,
+      refreshToken,
+    } = await authService.setRole(userId, role);
+    res.cookie('refreshToken', refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      //sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+      sameSite: 'lax' as const,
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
 
     res.status(200).json({
       success: true,
       message: 'Role updated successfully.',
-      data: null,
+      data: { selectedRole, accessToken },
     });
   } catch (err) {
     res.status(400).json({
@@ -138,14 +151,12 @@ const refreshToken: RequestHandler = async (req, res) => {
       });
     }
 
-    const result = await authService.refreshToken(token);
+    const { accessToken } = await authService.refreshToken(token);
 
     res.status(200).json({
       success: true,
       message: 'Access token refreshed.',
-      data: {
-        accessToken: result.accessToken,
-      },
+      data: { accessToken },
     });
   } catch (err) {
     res.status(401).json({
@@ -157,17 +168,13 @@ const refreshToken: RequestHandler = async (req, res) => {
 };
 
 const logout: RequestHandler = (req, res) => {
-  res.clearCookie('refreshToken', {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-  });
-
-  res.status(200).json({
-    success: true,
-    message: 'Logged out successfully.',
-    data: null,
-  });
+  res
+    .clearCookie('refreshToken', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+    })
+    .json({ success: true, message: 'Logged out successfully.', data: null });
 };
 
 export const authController = {
