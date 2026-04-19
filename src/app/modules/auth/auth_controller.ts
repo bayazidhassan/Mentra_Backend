@@ -172,7 +172,8 @@ const logout: RequestHandler = (req, res) => {
     .clearCookie('refreshToken', {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+      //sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+      sameSite: 'lax' as const,
     })
     .json({ success: true, message: 'Logged out successfully.', data: null });
 };
