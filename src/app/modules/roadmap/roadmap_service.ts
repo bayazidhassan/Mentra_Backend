@@ -6,12 +6,13 @@ const getMyRoadmap = async (learnerId: string) => {
   const roadmap = await Roadmap.findOne({ learner: learnerId }).sort({
     createdAt: -1,
   });
-
+  if (!roadmap) {
+    throw new Error('Roadmap not found.');
+  }
   return roadmap;
 };
 
 const generateRoadmap = async (learnerId: string, goal: string) => {
-  //check if roadmap already exists
   const existing = await Roadmap.findOne({ learner: learnerId });
   if (existing) {
     throw new Error(
@@ -19,7 +20,6 @@ const generateRoadmap = async (learnerId: string, goal: string) => {
     );
   }
 
-  //generate roadmap with Groq
   const completion = await groq.chat.completions.create({
     model: 'llama-3.3-70b-versatile',
     max_tokens: 2000,
@@ -42,48 +42,67 @@ Return ONLY a valid JSON object with this exact structure:
     {
       "title": "step title",
       "description": "what to learn in this step",
-      "resources": ["resource 1", "resource 2"],
+      "resources": [
+        { "title": "Resource Name", "url": "https://example.com" }
+      ],
       "order": 1
     }
   ]
 }
 
-Generate 6-8 steps. Each step should be clear, actionable and build on the previous one.`,
+Generate 6-8 steps. Each step should be clear, actionable and build on the previous one. Every resource must have both a title and a valid URL.`,
       },
     ],
   });
 
   const content = completion.choices[0]?.message?.content;
   if (!content) {
-    throw new Error('Failed to generate roadmap.');
+    throw new Error('Failed to generate roadmap content.');
   }
 
-  //clean response — remove markdown if present
+  // Strip any accidental markdown fences
   const cleaned = content
     .replace(/```json/g, '')
     .replace(/```/g, '')
     .trim();
 
-  let parsed;
+  let parsed: {
+    title: string;
+    description?: string;
+    steps: {
+      title: string;
+      description?: string;
+      resources?: { title: string; url: string }[];
+      order: number;
+    }[];
+  };
+
   try {
     parsed = JSON.parse(cleaned);
   } catch {
-    throw new Error('Failed to parse AI response.');
+    throw new Error('Failed to parse AI response. Please try again.');
   }
 
-  //save to MongoDB
   const roadmap = await Roadmap.create({
     learner: new Types.ObjectId(learnerId),
     title: parsed.title,
     description: parsed.description,
     goal,
-    steps: parsed.steps.map((step: any) => ({
-      ...step,
+    steps: parsed.steps.map((step) => ({
+      title: step.title,
+      description: step.description,
+      // ensure each resource is a proper { title, url } object
+      resources: Array.isArray(step.resources)
+        ? step.resources.filter((r) => r.title && r.url)
+        : [],
+      order: step.order,
       status: 'not_started',
     })),
     isAIGenerated: true,
+    status: 'active',
     totalSteps: parsed.steps.length,
     completedSteps: 0,
+    currentStep: 0,
   });
 
   return roadmap;
@@ -98,7 +117,7 @@ const createRoadmap = async (
     steps: {
       title: string;
       description?: string;
-      resources?: string[];
+      resources?: { title: string; url: string }[];
       order: number;
     }[];
   },
@@ -116,12 +135,19 @@ const createRoadmap = async (
     description: payload.description,
     goal: payload.goal,
     steps: payload.steps.map((step) => ({
-      ...step,
+      title: step.title,
+      description: step.description,
+      resources: Array.isArray(step.resources)
+        ? step.resources.filter((r) => r.title && r.url)
+        : [],
+      order: step.order,
       status: 'not_started',
     })),
     isAIGenerated: false,
+    status: 'active',
     totalSteps: payload.steps.length,
     completedSteps: 0,
+    currentStep: 0,
   });
 
   return roadmap;
@@ -147,16 +173,28 @@ const updateStepStatus = async (
     throw new Error('Step not found.');
   }
 
-  //update step status
+  // Update step fields
   step.status = status;
+  step.completedAt = status === 'completed' ? new Date() : undefined;
 
-  //recalculate completedSteps
+  // Recalculate top-level counters
   roadmap.completedSteps = roadmap.steps.filter(
     (s) => s.status === 'completed',
   ).length;
 
-  await roadmap.save();
+  // Advance currentStep to the next not_started step index (0-based)
+  const nextIndex = roadmap.steps.findIndex((s) => s.status !== 'completed');
+  roadmap.currentStep = nextIndex === -1 ? roadmap.totalSteps : nextIndex;
 
+  // Flip roadmap-level status when all steps are done
+  roadmap.status =
+    roadmap.completedSteps === roadmap.totalSteps ? 'completed' : 'active';
+
+  if (roadmap.status === 'completed' && !roadmap.completedAt) {
+    roadmap.completedAt = new Date();
+  }
+
+  await roadmap.save();
   return roadmap;
 };
 

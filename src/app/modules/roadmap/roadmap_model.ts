@@ -1,31 +1,63 @@
 import { model, Schema } from 'mongoose';
-import { TRoadmap, TStep } from './roadmap_interface';
+import {
+  TResource,
+  TRoadmap,
+  TRoadmapStatus,
+  TStepStatus,
+} from './roadmap_interface';
 
-const stepSchema = new Schema<TStep>({
-  title: {
-    type: String,
-    required: [true, 'Step title is required.'],
-    trim: true,
-  },
-  description: {
-    type: String,
-  },
-  resources: {
-    type: [String],
-  },
-  status: {
-    type: String,
-    enum: {
-      values: ['not_started', 'in_progress', 'completed'],
-      message: 'Status must be not_started, in_progress or completed.',
+const stepStatus: TStepStatus[] = ['not_started', 'in_progress', 'completed'];
+const roadmapStatus: TRoadmapStatus[] = ['active', 'completed'];
+
+const resourceSchema = new Schema<TResource>(
+  {
+    title: {
+      type: String,
+      required: [true, 'Resource title is required.'],
+      trim: true,
     },
-    default: 'not_started',
+    url: {
+      type: String,
+      required: [true, 'Resource URL is required.'],
+      trim: true,
+    },
   },
-  order: {
-    type: Number,
-    required: [true, 'Step order is required.'],
+  { _id: false },
+);
+
+const stepSchema = new Schema(
+  {
+    title: {
+      type: String,
+      required: [true, 'Step title is required.'],
+      trim: true,
+    },
+    description: {
+      type: String,
+      trim: true,
+    },
+    resources: {
+      type: [resourceSchema],
+      default: [],
+    },
+    status: {
+      type: String,
+      enum: {
+        values: stepStatus,
+        message: 'Invalid step status.',
+      },
+      default: 'not_started',
+    },
+    order: {
+      type: Number,
+      required: [true, 'Step order is required.'],
+    },
+    completedAt: {
+      type: Date,
+    },
   },
-});
+  { _id: true },
+);
 
 const roadmapSchema = new Schema<TRoadmap>(
   {
@@ -36,20 +68,29 @@ const roadmapSchema = new Schema<TRoadmap>(
     },
     title: {
       type: String,
-      required: [true, 'Title is required.'],
+      required: [true, 'Roadmap title is required.'],
       trim: true,
     },
     description: {
       type: String,
+      trim: true,
     },
     goal: {
       type: String,
-      required: [true, 'Goal is required.'],
+      required: [true, 'Roadmap goal is required.'],
       trim: true,
     },
     steps: {
       type: [stepSchema],
       default: [],
+    },
+    status: {
+      type: String,
+      enum: {
+        values: roadmapStatus,
+        message: 'Invalid roadmap status.',
+      },
+      default: 'active',
     },
     isAIGenerated: {
       type: Boolean,
@@ -62,6 +103,13 @@ const roadmapSchema = new Schema<TRoadmap>(
     completedSteps: {
       type: Number,
       default: 0,
+    },
+    currentStep: {
+      type: Number,
+      default: 0,
+    },
+    completedAt: {
+      type: Date,
     },
   },
   {
