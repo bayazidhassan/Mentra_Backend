@@ -3,7 +3,10 @@ import groq from '../../config/groq';
 import { Roadmap } from './roadmap_model';
 
 const getMyRoadmap = async (learnerId: string) => {
-  const roadmap = await Roadmap.findOne({ learner: learnerId }).sort({
+  const roadmap = await Roadmap.findOne({
+    learner: learnerId,
+    status: 'active',
+  }).sort({
     createdAt: -1,
   });
   if (!roadmap) {
@@ -13,11 +16,12 @@ const getMyRoadmap = async (learnerId: string) => {
 };
 
 const generateRoadmap = async (learnerId: string, goal: string) => {
-  const existing = await Roadmap.findOne({ learner: learnerId });
+  const existing = await Roadmap.findOne({
+    learner: learnerId,
+    status: 'active',
+  });
   if (existing) {
-    throw new Error(
-      'You already have a roadmap. Delete it first to generate a new one.',
-    );
+    throw new Error('You already have a roadmap.');
   }
 
   const completion = await groq.chat.completions.create({
@@ -102,7 +106,6 @@ Generate 6-8 steps. Each step should be clear, actionable and build on the previ
     status: 'active',
     totalSteps: parsed.steps.length,
     completedSteps: 0,
-    currentStep: 0,
   });
 
   return roadmap;
@@ -122,11 +125,12 @@ const createRoadmap = async (
     }[];
   },
 ) => {
-  const existing = await Roadmap.findOne({ learner: learnerId });
+  const existing = await Roadmap.findOne({
+    learner: learnerId,
+    status: 'active',
+  });
   if (existing) {
-    throw new Error(
-      'You already have a roadmap. Delete it first to create a new one.',
-    );
+    throw new Error('You already have a roadmap.');
   }
 
   const roadmap = await Roadmap.create({
@@ -147,7 +151,6 @@ const createRoadmap = async (
     status: 'active',
     totalSteps: payload.steps.length,
     completedSteps: 0,
-    currentStep: 0,
   });
 
   return roadmap;
@@ -182,10 +185,6 @@ const updateStepStatus = async (
     (s) => s.status === 'completed',
   ).length;
 
-  // Advance currentStep to the next not_started step index (0-based)
-  const nextIndex = roadmap.steps.findIndex((s) => s.status !== 'completed');
-  roadmap.currentStep = nextIndex === -1 ? roadmap.totalSteps : nextIndex;
-
   // Flip roadmap-level status when all steps are done
   roadmap.status =
     roadmap.completedSteps === roadmap.totalSteps ? 'completed' : 'active';
@@ -196,6 +195,19 @@ const updateStepStatus = async (
 
   await roadmap.save();
   return roadmap;
+};
+
+const getCompletedRoadmaps = async (learnerId: string) => {
+  const roadmaps = await Roadmap.find({
+    learner: learnerId,
+    status: 'completed',
+  }).sort({
+    completedAt: -1,
+  });
+  if (!roadmaps.length) {
+    throw new Error('No roadmap found.');
+  }
+  return roadmaps;
 };
 
 const deleteRoadmap = async (learnerId: string, roadmapId: string) => {
@@ -216,5 +228,6 @@ export const roadmapService = {
   generateRoadmap,
   createRoadmap,
   updateStepStatus,
+  getCompletedRoadmaps,
   deleteRoadmap,
 };

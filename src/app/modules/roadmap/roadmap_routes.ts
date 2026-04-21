@@ -12,5 +12,10 @@ router.patch(
   authMiddleware,
   roadmapController.updateStepStatus,
 );
+router.get(
+  '/completed',
+  authMiddleware,
+  roadmapController.getCompletedRoadmaps,
+);
 router.delete('/:id', authMiddleware, roadmapController.deleteRoadmap);
 export const roadmapRoutes = router;

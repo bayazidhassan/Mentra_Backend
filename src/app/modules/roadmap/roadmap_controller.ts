@@ -160,6 +160,31 @@ const updateStepStatus: RequestHandler = async (req, res) => {
   }
 };
 
+const getCompletedRoadmaps: RequestHandler = async (req, res) => {
+  try {
+    if (!req.user?.id) {
+      res.status(401).json({
+        success: false,
+        message: 'Unauthorized.',
+        data: null,
+      });
+      return;
+    }
+    const roadmaps = await roadmapService.getCompletedRoadmaps(req.user.id);
+    res.status(200).json({
+      success: true,
+      message: 'Completed roadmaps fetched.',
+      data: roadmaps,
+    });
+  } catch (err) {
+    res.status(500).json({
+      success: false,
+      message: (err as Error).message || 'Failed to fetch roadmap.',
+      data: null,
+    });
+  }
+};
+
 const deleteRoadmap: RequestHandler = async (req, res) => {
   try {
     const { id } = req.params as { id: string };
@@ -194,5 +219,6 @@ export const roadmapController = {
   generateRoadmap,
   createRoadmap,
   updateStepStatus,
+  getCompletedRoadmaps,
   deleteRoadmap,
 };

@@ -104,10 +104,6 @@ const roadmapSchema = new Schema<TRoadmap>(
       type: Number,
       default: 0,
     },
-    currentStep: {
-      type: Number,
-      default: 0,
-    },
     completedAt: {
       type: Date,
     },

@@ -28,6 +28,5 @@ export type TRoadmap = {
   isAIGenerated: boolean;
   totalSteps: number;
   completedSteps: number;
-  currentStep: number;
   completedAt?: Date;
 };
