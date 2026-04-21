@@ -1,5 +1,6 @@
 import { Types } from 'mongoose';
 import groq from '../../config/groq';
+import { Learner } from '../learner/learner_model';
 import { Roadmap } from './roadmap_model';
 
 const getMyRoadmap = async (learnerId: string) => {
@@ -13,6 +14,19 @@ const getMyRoadmap = async (learnerId: string) => {
     throw new Error('Roadmap not found.');
   }
   return roadmap;
+};
+
+const getCompletedRoadmaps = async (learnerId: string) => {
+  const roadmaps = await Roadmap.find({
+    learner: learnerId,
+    status: 'completed',
+  }).sort({
+    completedAt: -1,
+  });
+  if (!roadmaps.length) {
+    throw new Error('No roadmap found.');
+  }
+  return roadmaps;
 };
 
 const generateRoadmap = async (learnerId: string, goal: string) => {
@@ -108,6 +122,12 @@ Generate 6-8 steps. Each step should be clear, actionable and build on the previ
     completedSteps: 0,
   });
 
+  await Learner.findOneAndUpdate(
+    { userId: new Types.ObjectId(learnerId) },
+    { activeRoadmapId: roadmap._id },
+    { new: true },
+  );
+
   return roadmap;
 };
 
@@ -153,6 +173,12 @@ const createRoadmap = async (
     completedSteps: 0,
   });
 
+  // Track active roadmap on learner profile
+  await Learner.findOneAndUpdate(
+    { userId: new Types.ObjectId(learnerId) },
+    { $set: { activeRoadmapId: roadmap._id } },
+  );
+
   return roadmap;
 };
 
@@ -176,6 +202,9 @@ const updateStepStatus = async (
     throw new Error('Step not found.');
   }
 
+  // Snapshot status before any changes to detect transitions
+  const wasCompleted = roadmap.status === 'completed';
+
   // Update step fields
   step.status = status;
   step.completedAt = status === 'completed' ? new Date() : undefined;
@@ -186,28 +215,41 @@ const updateStepStatus = async (
   ).length;
 
   // Flip roadmap-level status when all steps are done
-  roadmap.status =
-    roadmap.completedSteps === roadmap.totalSteps ? 'completed' : 'active';
+  const isNowCompleted = roadmap.completedSteps === roadmap.totalSteps;
+  roadmap.status = isNowCompleted ? 'completed' : 'active';
 
-  if (roadmap.status === 'completed' && !roadmap.completedAt) {
+  if (isNowCompleted && !roadmap.completedAt) {
     roadmap.completedAt = new Date();
   }
 
   await roadmap.save();
-  return roadmap;
-};
 
-const getCompletedRoadmaps = async (learnerId: string) => {
-  const roadmaps = await Roadmap.find({
-    learner: learnerId,
-    status: 'completed',
-  }).sort({
-    completedAt: -1,
-  });
-  if (!roadmaps.length) {
-    throw new Error('No roadmap found.');
+  // ── Sync LearnerProfile ──────────────────────────────────────────────────
+  // Transition: active → completed
+  // Increment completedRoadmapsCount and clear activeRoadmapId
+  if (!wasCompleted && isNowCompleted) {
+    await Learner.findOneAndUpdate(
+      { userId: new Types.ObjectId(learnerId) },
+      {
+        $inc: { completedRoadmapsCount: 1 },
+        $set: { activeRoadmapId: null },
+      },
+    );
   }
-  return roadmaps;
+
+  // Transition: completed → active (learner un-completed a step)
+  // Decrement completedRoadmapsCount and restore activeRoadmapId
+  if (wasCompleted && !isNowCompleted) {
+    await Learner.findOneAndUpdate(
+      { userId: new Types.ObjectId(learnerId) },
+      {
+        $inc: { completedRoadmapsCount: -1 },
+        $set: { activeRoadmapId: roadmap._id },
+      },
+    );
+  }
+
+  return roadmap;
 };
 
 const deleteRoadmap = async (learnerId: string, roadmapId: string) => {
@@ -218,6 +260,14 @@ const deleteRoadmap = async (learnerId: string, roadmapId: string) => {
 
   if (!roadmap) {
     throw new Error('Roadmap not found.');
+  }
+
+  // If the deleted roadmap was active, clear the reference from learner profile
+  if (roadmap.status === 'active') {
+    await Learner.findOneAndUpdate(
+      { userId: new Types.ObjectId(learnerId) },
+      { $unset: { activeRoadmapId: '' } },
+    );
   }
 
   return roadmap;
