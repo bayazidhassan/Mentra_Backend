@@ -122,10 +122,10 @@ Generate 6-8 steps. Each step should be clear, actionable and build on the previ
     completedSteps: 0,
   });
 
+  // Track active roadmap on learner profile
   await Learner.findOneAndUpdate(
     { userId: new Types.ObjectId(learnerId) },
-    { activeRoadmapId: roadmap._id },
-    { new: true },
+    { $set: { activeRoadmapId: roadmap._id } },
   );
 
   return roadmap;
