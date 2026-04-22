@@ -1,100 +1,95 @@
 import { Types } from 'mongoose';
+import { Mentor } from '../mentor/mentor_model';
+import { createNotification } from '../notification/notification_service';
+import { User } from '../user/user_model';
 import { Session } from './session_model';
 
-const getUpcomingSessions = async (learnerId: string) => {
-  const sessions = await Session.find({
-    learner: learnerId,
-    scheduledAt: { $gte: new Date() },
-    status: { $in: ['pending', 'confirmed'] },
-  })
-    .populate('mentor', 'name email profileImage')
-    .sort({ scheduledAt: 1 })
-    .limit(5);
+// ─── getAvailableSlots ────────────────────────────────────────────────────────
+// Returns the mentor's availability days so frontend can
+// restrict the date picker to only allowed days
 
-  return sessions;
+const getAvailableSlots = async (mentorProfileId: string) => {
+  const mentor = await Mentor.findById(mentorProfileId).lean();
+  if (!mentor) throw new Error('Mentor not found.');
+
+  return {
+    availability: mentor.availability ?? [],
+    hourlyRate: mentor.hourlyRate,
+  };
 };
 
-const getMySessions = async (userId: string, role: string) => {
-  const filter = role === 'mentor' ? { mentor: userId } : { learner: userId };
-
-  const sessions = await Session.find(filter)
-    .populate('mentor', 'name email profileImage')
-    .populate('learner', 'name email profileImage')
-    .sort({ scheduledAt: -1 });
-
-  return sessions;
-};
-
-const getSessionById = async (sessionId: string, userId: string) => {
-  const session = await Session.findOne({
-    _id: sessionId,
-    $or: [{ learner: userId }, { mentor: userId }],
-  })
-    .populate('mentor', 'name email profileImage')
-    .populate('learner', 'name email profileImage');
-
-  if (!session) {
-    throw new Error('Session not found.');
-  }
-
-  return session;
-};
+// ─── bookSession ──────────────────────────────────────────────────────────────
 
 const bookSession = async (
   learnerId: string,
   payload: {
-    mentor: string;
+    mentorProfileId: string; // Mentor profile _id
     title: string;
     description?: string;
-    scheduledAt: string;
-    duration: number;
-    price: number;
+    scheduledAt: string; // ISO date string from frontend
+    durationMinutes: number;
   },
 ) => {
+  // 1. Get mentor profile to find userId and hourlyRate
+  const mentorProfile = await Mentor.findById(payload.mentorProfileId).lean();
+  if (!mentorProfile) throw new Error('Mentor not found.');
+  if (!mentorProfile.isApproved)
+    throw new Error('This mentor is not approved.');
+
+  // 2. Validate scheduledAt is on an available day
+  const scheduledDate = new Date(payload.scheduledAt);
+  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const scheduledDay = dayNames[scheduledDate.getUTCDay()];
+
+  const availability = mentorProfile.availability ?? [];
+  const matchedSlot = availability.find((a) => a.day === scheduledDay);
+
+  if (availability.length > 0 && !matchedSlot) {
+    throw new Error(
+      `This mentor is not available on ${scheduledDay}. Please pick an available day.`,
+    );
+  }
+
+  // 3. Calculate price from hourlyRate + duration
+  const price =
+    mentorProfile.hourlyRate !== undefined
+      ? parseFloat(
+          ((mentorProfile.hourlyRate / 60) * payload.durationMinutes).toFixed(
+            2,
+          ),
+        )
+      : undefined;
+
+  // 4. Create session
   const session = await Session.create({
     learner: new Types.ObjectId(learnerId),
-    mentor: new Types.ObjectId(payload.mentor),
+    mentor: mentorProfile.userId, // store mentor's userId not profile id
     title: payload.title,
     description: payload.description,
-    scheduledAt: new Date(payload.scheduledAt),
-    duration: payload.duration,
-    price: payload.price,
+    scheduledAt: scheduledDate,
+    durationMinutes: payload.durationMinutes,
+    price,
+    paymentStatus: 'unpaid',
     status: 'pending',
   });
 
-  return session.populate([
-    { path: 'mentor', select: 'name email profileImage' },
-    { path: 'learner', select: 'name email profileImage' },
-  ]);
-};
+  // 5. Get learner's name for notification message
+  const learnerUser = await User.findById(learnerId).lean();
+  const learnerName = learnerUser?.name ?? 'A learner';
 
-const updateSessionStatus = async (
-  sessionId: string,
-  userId: string,
-  status: 'confirmed' | 'cancelled' | 'completed',
-) => {
-  const session = await Session.findOne({
-    _id: sessionId,
-    $or: [{ learner: userId }, { mentor: userId }],
+  // 6. Notify the mentor
+  await createNotification({
+    userId: mentorProfile.userId,
+    type: 'session',
+    title: 'New session request',
+    message: `${learnerName} has requested a session: "${payload.title}"`,
+    actionUrl: `/sessions/${session._id}`,
   });
 
-  if (!session) {
-    throw new Error('Session not found.');
-  }
-
-  session.status = status;
-  await session.save();
-
-  return session.populate([
-    { path: 'mentor', select: 'name email profileImage' },
-    { path: 'learner', select: 'name email profileImage' },
-  ]);
+  return session;
 };
 
 export const sessionService = {
-  getUpcomingSessions,
-  getMySessions,
-  getSessionById,
+  getAvailableSlots,
   bookSession,
-  updateSessionStatus,
 };
