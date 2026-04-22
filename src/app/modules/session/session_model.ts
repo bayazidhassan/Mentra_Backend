@@ -6,12 +6,16 @@ const sessionSchema = new Schema<TSession>(
     learner: {
       type: Schema.Types.ObjectId,
       ref: 'User',
-      required: [true, 'Learner ID is required.'],
+      required: [true, 'Learner id is required.'],
     },
     mentor: {
       type: Schema.Types.ObjectId,
       ref: 'User',
-      required: [true, 'Mentor ID is required.'],
+      required: [true, 'Mentor id is required.'],
+    },
+    roadmap: {
+      type: Schema.Types.ObjectId,
+      ref: 'Roadmap',
     },
     title: {
       type: String,
@@ -20,29 +24,47 @@ const sessionSchema = new Schema<TSession>(
     },
     description: {
       type: String,
+      trim: true,
     },
     scheduledAt: {
       type: Date,
       required: [true, 'Schedule is required.'],
     },
-    duration: {
+    durationMinutes: {
       type: Number,
-      required: [true, 'Duration is required.'],
+      required: [true, 'Duration minutes is required.'],
     },
-    status: {
+    price: {
+      type: Number,
+    },
+    paymentStatus: {
       type: String,
-      enum: {
-        values: ['pending', 'confirmed', 'completed', 'cancelled'],
-        message: 'Status must be pending, confirmed, completed or cancelled.',
-      },
-      default: 'pending',
+      enum: ['unpaid', 'paid'],
+      default: 'unpaid',
     },
     meetingLink: {
       type: String,
     },
-    price: {
+    status: {
+      type: String,
+      enum: ['pending', 'accepted', 'completed', 'cancelled'],
+      default: 'pending',
+    },
+    ratingByLearner: {
       type: Number,
-      required: [true, 'Price is required.'],
+      min: 1,
+      max: 5,
+    },
+    feedbackByLearner: {
+      type: String,
+    },
+    ratingByMentor: {
+      type: Number,
+      min: 1,
+      max: 5,
+    },
+    feedbackByMentor: {
+      type: String,
     },
   },
   {
