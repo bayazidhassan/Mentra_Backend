@@ -1,61 +1,19 @@
 import { RequestHandler } from 'express';
 import { sessionService } from './session_service';
 
-const getUpcomingSessions: RequestHandler = async (req, res) => {
+const getAvailableSlots: RequestHandler = async (req, res) => {
   try {
-    const sessions = await sessionService.getUpcomingSessions(
-      req.user?.id as string,
-    );
+    const { mentorId } = req.params as { mentorId: string };
+    const data = await sessionService.getAvailableSlots(mentorId);
     res.status(200).json({
       success: true,
-      message: 'Upcoming sessions fetched successfully.',
-      data: sessions,
+      message: 'Availability fetched.',
+      data,
     });
   } catch (err) {
     res.status(400).json({
       success: false,
-      message: (err as Error).message || 'Failed to fetch sessions.',
-      data: null,
-    });
-  }
-};
-
-const getMySessions: RequestHandler = async (req, res) => {
-  try {
-    const sessions = await sessionService.getMySessions(
-      req.user?.id as string,
-      req.user?.role as string,
-    );
-    res.status(200).json({
-      success: true,
-      message: 'Sessions fetched successfully.',
-      data: sessions,
-    });
-  } catch (err) {
-    res.status(400).json({
-      success: false,
-      message: (err as Error).message || 'Failed to fetch sessions.',
-      data: null,
-    });
-  }
-};
-
-const getSessionById: RequestHandler = async (req, res) => {
-  try {
-    const { id } = req.params as { id: string };
-    const session = await sessionService.getSessionById(
-      id,
-      req.user?.id as string,
-    );
-    res.status(200).json({
-      success: true,
-      message: 'Session fetched successfully.',
-      data: session,
-    });
-  } catch (err) {
-    res.status(404).json({
-      success: false,
-      message: (err as Error).message || 'Session not found.',
+      message: (err as Error).message || 'Failed to fetch availability.',
       data: null,
     });
   }
@@ -63,25 +21,30 @@ const getSessionById: RequestHandler = async (req, res) => {
 
 const bookSession: RequestHandler = async (req, res) => {
   try {
-    const { mentor, title, description, scheduledAt, duration, price } =
-      req.body;
+    const {
+      mentorProfileId,
+      title,
+      description,
+      scheduledAt,
+      durationMinutes,
+    } = req.body;
 
-    if (!mentor || !title || !scheduledAt || !duration || !price) {
+    if (!mentorProfileId || !title || !scheduledAt || !durationMinutes) {
       res.status(400).json({
         success: false,
-        message: 'All fields are required.',
+        message:
+          'mentorProfileId, title, scheduledAt and durationMinutes are required.',
         data: null,
       });
       return;
     }
 
     const session = await sessionService.bookSession(req.user?.id as string, {
-      mentor,
+      mentorProfileId,
       title,
       description,
       scheduledAt,
-      duration,
-      price,
+      durationMinutes: Number(durationMinutes),
     });
 
     res.status(201).json({
@@ -98,44 +61,7 @@ const bookSession: RequestHandler = async (req, res) => {
   }
 };
 
-const updateSessionStatus: RequestHandler = async (req, res) => {
-  try {
-    const { id } = req.params as { id: string };
-    const { status } = req.body;
-
-    if (!status) {
-      res.status(400).json({
-        success: false,
-        message: 'Status is required.',
-        data: null,
-      });
-      return;
-    }
-
-    const session = await sessionService.updateSessionStatus(
-      id,
-      req.user?.id as string,
-      status,
-    );
-
-    res.status(200).json({
-      success: true,
-      message: 'Session status updated successfully.',
-      data: session,
-    });
-  } catch (err) {
-    res.status(400).json({
-      success: false,
-      message: (err as Error).message || 'Failed to update session.',
-      data: null,
-    });
-  }
-};
-
 export const sessionController = {
-  getUpcomingSessions,
-  getMySessions,
-  getSessionById,
+  getAvailableSlots,
   bookSession,
-  updateSessionStatus,
 };
