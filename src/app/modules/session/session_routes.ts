@@ -12,4 +12,4 @@ router.post('/book', sessionController.bookSession);
 router.patch('/:id/accept', sessionController.acceptSession);
 router.patch('/:id/cancel', sessionController.cancelSession);
 
-export default router;
+export const sessionRoutes = router;

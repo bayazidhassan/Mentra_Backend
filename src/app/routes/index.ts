@@ -11,7 +11,7 @@ const router = Router();
 
 router.use('/users', userRoutes);
 router.use('/auth', authRoutes);
-router.use('/sessions', sessionRoutes);
+router.use('/session', sessionRoutes);
 router.use('/roadmap', roadmapRoutes);
 router.use('/learner', learnerRoutes);
 router.use('/mentor', mentorRoutes);
