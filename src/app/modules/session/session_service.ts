@@ -9,9 +9,27 @@ import { Session } from './session_model';
 const getAvailableSlots = async (mentorProfileId: string) => {
   const mentor = await Mentor.findById(mentorProfileId).lean();
   if (!mentor) throw new Error('Mentor not found.');
+
+  // Fetch already booked dates for this mentor
+  const bookedSessions = await Session.find({
+    mentor: mentor.userId,
+    status: { $in: ['pending', 'accepted'] },
+    scheduledAt: { $gte: new Date() }, // only future sessions
+  })
+    .select('scheduledAt durationMinutes')
+    .lean();
+
+  const bookedSlots = bookedSessions.map((s) => ({
+    start: new Date(s.scheduledAt).toISOString(),
+    end: new Date(
+      new Date(s.scheduledAt).getTime() + s.durationMinutes * 60 * 1000,
+    ).toISOString(),
+  }));
+
   return {
     availability: mentor.availability ?? [],
     hourlyRate: mentor.hourlyRate,
+    bookedSlots,
   };
 };
 
@@ -41,6 +59,48 @@ const bookSession = async (
   if (availability.length > 0 && !matchedSlot) {
     throw new Error(
       `This mentor is not available on ${scheduledDay}. Please pick an available day.`,
+    );
+  }
+
+  // Check for conflicting sessions on the same slot
+  const sessionStart = scheduledDate;
+  const sessionEnd = new Date(
+    scheduledDate.getTime() + payload.durationMinutes * 60 * 1000,
+  );
+
+  const conflict = await Session.findOne({
+    mentor: mentorProfile.userId,
+    status: { $in: ['pending', 'accepted'] },
+    $or: [
+      {
+        // existing session starts during the new session
+        scheduledAt: { $gte: sessionStart, $lt: sessionEnd },
+      },
+      {
+        // existing session ends during the new session
+        $and: [
+          { scheduledAt: { $lt: sessionStart } },
+          {
+            $expr: {
+              $gt: [
+                {
+                  $add: [
+                    '$scheduledAt',
+                    { $multiply: ['$durationMinutes', 60000] },
+                  ],
+                },
+                sessionStart.getTime(),
+              ],
+            },
+          },
+        ],
+      },
+    ],
+  });
+
+  if (conflict) {
+    throw new Error(
+      'This time slot is already booked. Please choose another date.',
     );
   }
 
