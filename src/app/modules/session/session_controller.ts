@@ -72,9 +72,11 @@ const getMySessions: RequestHandler = async (req, res) => {
       req.user?.id as string,
       role,
     );
-    res
-      .status(200)
-      .json({ success: true, message: 'Sessions fetched.', data: sessions });
+    res.status(200).json({
+      success: true,
+      message: 'Sessions fetched.',
+      data: sessions,
+    });
   } catch (err) {
     res.status(400).json({
       success: false,
@@ -112,13 +114,105 @@ const cancelSession: RequestHandler = async (req, res) => {
       id,
       role,
     );
-    res
-      .status(200)
-      .json({ success: true, message: 'Session cancelled.', data: session });
+    res.status(200).json({
+      success: true,
+      message: 'Session cancelled.',
+      data: session,
+    });
   } catch (err) {
     res.status(400).json({
       success: false,
       message: (err as Error).message || 'Failed to cancel session.',
+      data: null,
+    });
+  }
+};
+
+const addMeetingLink: RequestHandler = async (req, res) => {
+  try {
+    const { id } = req.params as { id: string };
+    const { meetingLink } = req.body;
+
+    if (!meetingLink) {
+      res.status(400).json({
+        success: false,
+        message: 'meetingLink is required.',
+        data: null,
+      });
+      return;
+    }
+
+    const session = await sessionService.addMeetingLink(
+      req.user?.id as string,
+      id,
+      meetingLink,
+    );
+    res.status(200).json({
+      success: true,
+      message: 'Meeting link added.',
+      data: session,
+    });
+  } catch (err) {
+    res.status(400).json({
+      success: false,
+      message: (err as Error).message || 'Failed to add meeting link.',
+      data: null,
+    });
+  }
+};
+
+const completeSession: RequestHandler = async (req, res) => {
+  try {
+    const { id } = req.params as { id: string };
+    const session = await sessionService.completeSession(
+      req.user?.id as string,
+      id,
+    );
+    res.status(200).json({
+      success: true,
+      message: 'Session marked as completed.',
+      data: session,
+    });
+  } catch (err) {
+    res.status(400).json({
+      success: false,
+      message: (err as Error).message || 'Failed to complete session.',
+      data: null,
+    });
+  }
+};
+
+const rateSession: RequestHandler = async (req, res) => {
+  try {
+    const { id } = req.params as { id: string };
+    const { rating, feedback } = req.body;
+    const role = req.user?.role as 'learner' | 'mentor';
+
+    if (!rating) {
+      res.status(400).json({
+        success: false,
+        message: 'Rating is required.',
+        data: null,
+      });
+      return;
+    }
+
+    const session = await sessionService.rateSession(
+      req.user?.id as string,
+      id,
+      role,
+      Number(rating),
+      feedback,
+    );
+    res.status(200).json({
+      success: true,
+      message: 'Rating submitted.',
+      data: session,
+    });
+  } catch (err) {
+    res.status(400).json({
+      success: false,
+      message: (err as Error).message || 'Failed to submit rating.',
       data: null,
     });
   }
@@ -130,4 +224,7 @@ export const sessionController = {
   getMySessions,
   acceptSession,
   cancelSession,
+  addMeetingLink,
+  completeSession,
+  rateSession,
 };
