@@ -1,4 +1,5 @@
 import { Types } from 'mongoose';
+import { Learner } from '../learner/learner_model';
 import { Mentor } from '../mentor/mentor_model';
 import { createNotification } from '../notification/notification_service';
 import { User } from '../user/user_model';
@@ -10,11 +11,10 @@ const getAvailableSlots = async (mentorProfileId: string) => {
   const mentor = await Mentor.findById(mentorProfileId).lean();
   if (!mentor) throw new Error('Mentor not found.');
 
-  // Fetch already booked dates for this mentor
   const bookedSessions = await Session.find({
     mentor: mentor.userId,
     status: { $in: ['pending', 'accepted'] },
-    scheduledAt: { $gte: new Date() }, // only future sessions
+    scheduledAt: { $gte: new Date() },
   })
     .select('scheduledAt durationMinutes')
     .lean();
@@ -62,7 +62,7 @@ const bookSession = async (
     );
   }
 
-  // Check for conflicting sessions on the same slot
+  // Check for conflicting sessions
   const sessionStart = scheduledDate;
   const sessionEnd = new Date(
     scheduledDate.getTime() + payload.durationMinutes * 60 * 1000,
@@ -72,12 +72,8 @@ const bookSession = async (
     mentor: mentorProfile.userId,
     status: { $in: ['pending', 'accepted'] },
     $or: [
+      { scheduledAt: { $gte: sessionStart, $lt: sessionEnd } },
       {
-        // existing session starts during the new session
-        scheduledAt: { $gte: sessionStart, $lt: sessionEnd },
-      },
-      {
-        // existing session ends during the new session
         $and: [
           { scheduledAt: { $lt: sessionStart } },
           {
@@ -149,7 +145,6 @@ const getMySessions = async (userId: string, role: 'learner' | 'mentor') => {
 
   const sessions = await Session.find(filter).sort({ scheduledAt: 1 }).lean();
 
-  // Enrich each session with the other party's user info
   const enriched = await Promise.all(
     sessions.map(async (session) => {
       const otherUserId = role === 'learner' ? session.mentor : session.learner;
@@ -229,24 +224,176 @@ const cancelSession = async (
   session.status = 'cancelled';
   await session.save();
 
-  // Notify the other party
   const actorUser = await User.findById(userId).lean();
   const actorName = actorUser?.name ?? 'Someone';
-
   const notifyUserId = role === 'learner' ? session.mentor : session.learner;
-
-  const message =
-    role === 'mentor'
-      ? `${actorName} declined your session request: "${session.title}"`
-      : `${actorName} cancelled the session: "${session.title}"`;
 
   await createNotification({
     userId: notifyUserId,
     type: 'session',
     title: role === 'mentor' ? 'Session declined' : 'Session cancelled',
-    message,
+    message:
+      role === 'mentor'
+        ? `${actorName} declined your session request: "${session.title}"`
+        : `${actorName} cancelled the session: "${session.title}"`,
     actionUrl: `/sessions`,
   });
+
+  return session;
+};
+
+// ─── addMeetingLink ───────────────────────────────────────────────────────────
+
+const addMeetingLink = async (
+  mentorUserId: string,
+  sessionId: string,
+  meetingLink: string,
+) => {
+  const session = await Session.findOne({
+    _id: sessionId,
+    mentor: new Types.ObjectId(mentorUserId),
+    status: 'accepted',
+    paymentStatus: 'paid', // only after payment
+  });
+
+  if (!session) {
+    throw new Error(
+      'Session not found. Meeting link can only be added after payment is confirmed.',
+    );
+  }
+
+  session.meetingLink = meetingLink;
+  await session.save();
+
+  // Notify learner
+  await createNotification({
+    userId: session.learner,
+    type: 'session',
+    title: 'Meeting link added!',
+    message: `Your mentor has added the meeting link for: "${session.title}"`,
+    actionUrl: `/sessions`,
+  });
+
+  return session;
+};
+
+// ─── completeSession ──────────────────────────────────────────────────────────
+
+const completeSession = async (mentorUserId: string, sessionId: string) => {
+  const session = await Session.findOne({
+    _id: sessionId,
+    mentor: new Types.ObjectId(mentorUserId),
+    status: 'accepted',
+  });
+
+  if (!session) {
+    throw new Error('Session not found or cannot be completed.');
+  }
+
+  session.status = 'completed';
+  await session.save();
+
+  // Increment learner's completedSessionsCount
+  await Learner.findOneAndUpdate(
+    { userId: session.learner },
+    { $inc: { completedSessionsCount: 1 } },
+  );
+
+  // Notify both parties
+  const mentorUser = await User.findById(mentorUserId).lean();
+  const mentorName = mentorUser?.name ?? 'Your mentor';
+
+  await createNotification({
+    userId: session.learner,
+    type: 'session',
+    title: 'Session completed!',
+    message: `Your session "${session.title}" has been marked as completed. Please leave a review!`,
+    actionUrl: `/sessions`,
+  });
+
+  await createNotification({
+    userId: session.mentor,
+    type: 'session',
+    title: 'Session completed',
+    message: `You marked "${session.title}" as completed. Don't forget to rate your learner!`,
+    actionUrl: `/sessions`,
+  });
+
+  return session;
+};
+
+// ─── rateSession ──────────────────────────────────────────────────────────────
+
+const rateSession = async (
+  userId: string,
+  sessionId: string,
+  role: 'learner' | 'mentor',
+  rating: number,
+  feedback?: string,
+) => {
+  if (rating < 1 || rating > 5) {
+    throw new Error('Rating must be between 1 and 5.');
+  }
+
+  const filter =
+    role === 'learner'
+      ? {
+          _id: sessionId,
+          learner: new Types.ObjectId(userId),
+          status: 'completed',
+        }
+      : {
+          _id: sessionId,
+          mentor: new Types.ObjectId(userId),
+          status: 'completed',
+        };
+
+  const session = await Session.findOne(filter);
+  if (!session) throw new Error('Session not found or not completed.');
+
+  // One time only — prevent overwriting
+  if (role === 'learner' && session.ratingByLearner !== undefined) {
+    throw new Error('You have already rated this session.');
+  }
+  if (role === 'mentor' && session.ratingByMentor !== undefined) {
+    throw new Error('You have already rated this session.');
+  }
+
+  // Save rating
+  if (role === 'learner') {
+    session.ratingByLearner = rating;
+    session.feedbackByLearner = feedback;
+  } else {
+    session.ratingByMentor = rating;
+    session.feedbackByMentor = feedback;
+  }
+
+  await session.save();
+
+  // If learner rated — recalculate mentor's overall rating
+  if (role === 'learner') {
+    const allRatedSessions = await Session.find({
+      mentor: session.mentor,
+      status: 'completed',
+      ratingByLearner: { $exists: true },
+    }).lean();
+
+    const totalReviews = allRatedSessions.length;
+    const avgRating =
+      allRatedSessions.reduce((sum, s) => sum + (s.ratingByLearner ?? 0), 0) /
+      totalReviews;
+
+    // Find mentor profile by userId
+    await Mentor.findOneAndUpdate(
+      { userId: session.mentor },
+      {
+        $set: {
+          rating: parseFloat(avgRating.toFixed(1)),
+          totalReviews,
+        },
+      },
+    );
+  }
 
   return session;
 };
@@ -257,4 +404,7 @@ export const sessionService = {
   getMySessions,
   acceptSession,
   cancelSession,
+  addMeetingLink,
+  completeSession,
+  rateSession,
 };
