@@ -11,5 +11,8 @@ router.get('/my-sessions', sessionController.getMySessions);
 router.post('/book', sessionController.bookSession);
 router.patch('/:id/accept', sessionController.acceptSession);
 router.patch('/:id/cancel', sessionController.cancelSession);
+router.patch('/:id/meeting-link', sessionController.addMeetingLink);
+router.patch('/:id/complete', sessionController.completeSession);
+router.patch('/:id/rate', sessionController.rateSession);
 
-export const sessionRoutes = router;
+export default router;
