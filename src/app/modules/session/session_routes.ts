@@ -15,4 +15,4 @@ router.patch('/:id/meeting-link', sessionController.addMeetingLink);
 router.patch('/:id/complete', sessionController.completeSession);
 router.patch('/:id/rate', sessionController.rateSession);
 
-export default router;
+export const sessionRoutes = router;
