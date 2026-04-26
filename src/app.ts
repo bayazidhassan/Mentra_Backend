@@ -1,7 +1,7 @@
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import express from 'express';
-import { paymentRoutes } from './app/modules/payment/payment_routes';
+import { paymentController } from './app/modules/payment/payment_controller';
 import router from './app/routes';
 
 const app = express();
@@ -14,8 +14,13 @@ app.use(
 );
 
 // The Stripe webhook requires the RAW request body (not parsed JSON).
-// You must register the payment routes BEFORE app.use(express.json()) middleware.
-app.use('/api/payment', paymentRoutes);
+// You must register the webhook routes BEFORE app.use(express.json()) middleware.
+// Webhook must use raw body
+app.use(
+  '/api/v1/payment/webhook',
+  express.raw({ type: 'application/json' }),
+  paymentController.handleWebhook,
+);
 
 app.use(express.json());
 app.use(cookieParser());

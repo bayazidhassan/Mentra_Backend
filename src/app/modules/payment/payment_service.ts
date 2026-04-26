@@ -1,5 +1,4 @@
 import { Types } from 'mongoose';
-import Stripe from 'stripe';
 import { stripe } from '../../config/stripe';
 import { createNotification } from '../notification/notification_service';
 import { Session } from '../session/session_model';
@@ -91,7 +90,7 @@ const createCheckoutSession = async (learnerId: string, sessionId: string) => {
 // ─── handleWebhook ────────────────────────────────────────────────────────────
 
 const handleWebhook = async (rawBody: Buffer, signature: string) => {
-  let event: Stripe.Event;
+  let event: ReturnType<typeof stripe.webhooks.constructEvent>;
 
   // Verify webhook signature — prevents fake events
   try {
@@ -106,7 +105,7 @@ const handleWebhook = async (rawBody: Buffer, signature: string) => {
 
   // Only handle successful checkout
   if (event.type === 'checkout.session.completed') {
-    const stripeSession = event.data.object as Stripe.Checkout.Session;
+    const stripeSession = event.data.object as any;
 
     const { sessionId, paymentId, learnerId, mentorId } =
       stripeSession.metadata ?? {};
@@ -150,7 +149,7 @@ const handleWebhook = async (rawBody: Buffer, signature: string) => {
 
   // Handle failed payment
   if (event.type === 'checkout.session.expired') {
-    const stripeSession = event.data.object as Stripe.Checkout.Session;
+    const stripeSession = event.data.object as any;
     const { paymentId } = stripeSession.metadata ?? {};
 
     if (paymentId) {
