@@ -24,7 +24,7 @@ const paymentSchema = new Schema<TPayment>(
     },
     currency: {
       type: String,
-      default: 'USD',
+      default: 'usd',
     },
     status: {
       type: String,
