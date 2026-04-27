@@ -1,14 +1,23 @@
 import dotenv from 'dotenv';
 dotenv.config();
 
+import { createServer } from 'http';
 import app from './app';
 import connectDB from './app/config/db';
+import { initSocket } from './socket';
 
 const startServer = async () => {
   try {
     await connectDB();
 
-    app.listen(process.env.PORT, () => {
+    // Wrap express app in http server — required for Socket.IO
+    const httpServer = createServer(app);
+
+    // Init Socket.IO on the same server
+    initSocket(httpServer);
+
+    // Listen on httpServer NOT app.listen
+    httpServer.listen(process.env.PORT, () => {
       console.log(`Mentra listening on port ${process.env.PORT}`);
     });
   } catch (error) {
@@ -18,3 +27,24 @@ const startServer = async () => {
 };
 
 startServer();
+
+// import dotenv from 'dotenv';
+// dotenv.config();
+
+// import app from './app';
+// import connectDB from './app/config/db';
+
+// const startServer = async () => {
+//   try {
+//     await connectDB();
+
+//     app.listen(process.env.PORT, () => {
+//       console.log(`Mentra listening on port ${process.env.PORT}`);
+//     });
+//   } catch (error) {
+//     console.error('❌ Failed to start server: ', error);
+//     process.exit(1);
+//   }
+// };
+
+// startServer();
