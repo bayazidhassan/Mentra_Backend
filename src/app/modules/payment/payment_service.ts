@@ -134,7 +134,7 @@ const handleWebhook = async (rawBody: Buffer, signature: string) => {
       title: 'Payment successful!',
       message:
         'Your session payment was confirmed. Check your sessions for details.',
-      actionUrl: '/session',
+      actionUrl: '/sessions',
     });
 
     // Notify mentor
