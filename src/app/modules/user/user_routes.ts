@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { authMiddleware } from '../../../middleware/authMiddleware';
+import { authMiddleware } from '../../middleware/authMiddleware';
 import { upload } from '../../utils/uploadImageToCloudinary';
 import { userController } from './user_controller';
 

@@ -1,6 +1,6 @@
 import bcrypt from 'bcryptjs';
 import mongoose from 'mongoose';
-import { TProfilePayload } from '../../../types/profile';
+import { TProfilePayload } from '../../types/profile';
 import uploadImageToCloudinary from '../../utils/uploadImageToCloudinary';
 import { Learner } from '../learner/learner_model';
 import { Mentor } from '../mentor/mentor_model';
