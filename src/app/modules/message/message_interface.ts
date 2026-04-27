@@ -7,4 +7,6 @@ export type TMessage = {
   sessionId?: Types.ObjectId;
   text: string;
   isRead: boolean;
+  createdAt: Date;
+  updatedAt: Date;
 };
