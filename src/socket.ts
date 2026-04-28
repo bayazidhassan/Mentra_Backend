@@ -18,10 +18,16 @@ interface AuthenticatedSocket extends Socket {
   user?: TSocketUser;
 }
 
+// ─── Export io instance so other modules can emit events ──────────────────────
+
+let ioInstance: SocketIOServer | null = null;
+
+export const getIO = (): SocketIOServer | null => ioInstance;
+
 // ─── Socket.IO setup ──────────────────────────────────────────────────────────
 
 export const initSocket = (httpServer: HttpServer) => {
-  const io = new SocketIOServer(httpServer, {
+  ioInstance = new SocketIOServer(httpServer, {
     cors: {
       origin:
         process.env.NODE_ENV === 'production'
@@ -32,7 +38,7 @@ export const initSocket = (httpServer: HttpServer) => {
   });
 
   // ── Auth middleware ──────────────────────────────────────────────────────
-  io.use((socket: AuthenticatedSocket, next) => {
+  ioInstance.use((socket: AuthenticatedSocket, next) => {
     const token =
       socket.handshake.auth?.token ||
       socket.handshake.headers?.authorization?.split(' ')[1];
@@ -54,13 +60,13 @@ export const initSocket = (httpServer: HttpServer) => {
   });
 
   // ── Connection ───────────────────────────────────────────────────────────
-  io.on('connection', (socket: AuthenticatedSocket) => {
+  ioInstance.on('connection', (socket: AuthenticatedSocket) => {
     const userId = socket.user?.id;
     if (!userId) return;
 
     console.log(`Socket connected: ${userId}`);
 
-    // Join a personal room so we can send events to specific users
+    // Personal room for targeted notifications + unread badges
     socket.join(`user:${userId}`);
 
     // ── Join conversation room ─────────────────────────────────────────────
@@ -80,13 +86,11 @@ export const initSocket = (httpServer: HttpServer) => {
       'send_message',
       async (data: { receiverId: string; text: string }) => {
         const { receiverId, text } = data;
-
         if (!text?.trim() || !receiverId) return;
 
         try {
           const conversationId = buildConversationId(userId, receiverId);
 
-          // Save to DB
           const message = await Message.create({
             conversationId,
             senderId: new Types.ObjectId(userId),
@@ -105,23 +109,22 @@ export const initSocket = (httpServer: HttpServer) => {
             createdAt: message.createdAt.toISOString(),
           };
 
-          // Emit to everyone in the conversation room (sender + receiver if online)
-          io.to(conversationId).emit('new_message', messageData);
+          // Emit to conversation room (both sender + receiver if online)
+          ioInstance!.to(conversationId).emit('new_message', messageData);
 
-          // Also emit unread badge update to receiver's personal room
-          // (in case they're not in the conversation room)
-          io.to(`user:${receiverId}`).emit('unread_message', {
+          // Emit unread badge to receiver's personal room
+          ioInstance!.to(`user:${receiverId}`).emit('unread_message', {
             conversationId,
             senderId: userId,
             senderName: socket.user?.name,
           });
-        } catch (err) {
+        } catch {
           socket.emit('message_error', { error: 'Failed to send message.' });
         }
       },
     );
 
-    // ── Typing indicator ───────────────────────────────────────────────────
+    // ── Typing indicators ──────────────────────────────────────────────────
     socket.on('typing', (otherUserId: string) => {
       const conversationId = buildConversationId(userId, otherUserId);
       socket.to(conversationId).emit('user_typing', { userId });
@@ -132,7 +135,7 @@ export const initSocket = (httpServer: HttpServer) => {
       socket.to(conversationId).emit('user_stop_typing', { userId });
     });
 
-    // ── Mark as read ───────────────────────────────────────────────────────
+    // ── Mark messages as read ──────────────────────────────────────────────
     socket.on('mark_read', async (otherUserId: string) => {
       const conversationId = buildConversationId(userId, otherUserId);
       await Message.updateMany(
@@ -143,8 +146,9 @@ export const initSocket = (httpServer: HttpServer) => {
         },
         { $set: { isRead: true } },
       );
-      // Notify sender that their messages were read
-      io.to(`user:${otherUserId}`).emit('messages_read', { conversationId });
+      ioInstance!.to(`user:${otherUserId}`).emit('messages_read', {
+        conversationId,
+      });
     });
 
     // ── Disconnect ─────────────────────────────────────────────────────────
@@ -153,5 +157,5 @@ export const initSocket = (httpServer: HttpServer) => {
     });
   });
 
-  return io;
+  return ioInstance;
 };
