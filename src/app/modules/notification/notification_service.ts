@@ -1,7 +1,10 @@
 import { Types } from 'mongoose';
+import { getIO } from '../../../socket';
 import { Notification } from './notification_model';
 
-// ─── createNotification (internal helper) ─────────────────────────────────────
+// ─── createNotification ───────────────────────────────────────────────────────
+// Internal helper — called by session, payment services etc.
+// Saves to DB + emits real-time event to the user's personal Socket.IO room
 
 export const createNotification = async ({
   userId,
@@ -16,7 +19,7 @@ export const createNotification = async ({
   message: string;
   actionUrl?: string;
 }) => {
-  await Notification.create({
+  const notification = await Notification.create({
     user: new Types.ObjectId(userId.toString()),
     type,
     title,
@@ -24,6 +27,23 @@ export const createNotification = async ({
     isRead: false,
     actionUrl,
   });
+
+  // Emit real-time event to the user's personal room
+  const io = getIO();
+  if (io) {
+    io.to(`user:${userId.toString()}`).emit('new_notification', {
+      _id: notification._id.toString(),
+      user: userId.toString(),
+      type: notification.type,
+      title: notification.title,
+      message: notification.message,
+      isRead: false,
+      actionUrl: notification.actionUrl,
+      createdAt: notification.createdAt.toISOString(),
+    });
+  }
+
+  return notification;
 };
 
 // ─── getMyNotifications ───────────────────────────────────────────────────────
