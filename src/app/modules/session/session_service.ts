@@ -51,6 +51,7 @@ const bookSession = async (
     throw new Error('This mentor is not approved.');
 
   const scheduledDate = new Date(payload.scheduledAt);
+
   const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   const scheduledDay = dayNames[scheduledDate.getUTCDay()];
   const availability = mentorProfile.availability ?? [];
@@ -62,7 +63,6 @@ const bookSession = async (
     );
   }
 
-  // Check for conflicting sessions
   const sessionStart = scheduledDate;
   const sessionEnd = new Date(
     scheduledDate.getTime() + payload.durationMinutes * 60 * 1000,
@@ -71,32 +71,20 @@ const bookSession = async (
   const conflict = await Session.findOne({
     mentor: mentorProfile.userId,
     status: { $in: ['pending', 'accepted'] },
-    $or: [
-      { scheduledAt: { $gte: sessionStart, $lt: sessionEnd } },
-      {
-        $and: [
-          { scheduledAt: { $lt: sessionStart } },
-          {
-            $expr: {
-              $gt: [
-                {
-                  $add: [
-                    '$scheduledAt',
-                    { $multiply: ['$durationMinutes', 60000] },
-                  ],
-                },
-                sessionStart.getTime(),
-              ],
-            },
-          },
-        ],
-      },
-    ],
+    scheduledAt: { $lt: sessionEnd },
+    $expr: {
+      $gt: [
+        {
+          $add: ['$scheduledAt', { $multiply: ['$durationMinutes', 60000] }],
+        },
+        { $toDate: sessionStart.getTime() },
+      ],
+    },
   });
 
   if (conflict) {
     throw new Error(
-      'This time slot is already booked. Please choose another date.',
+      'This time slot is already booked. Please choose another time.',
     );
   }
 
@@ -253,7 +241,7 @@ const addMeetingLink = async (
     _id: sessionId,
     mentor: new Types.ObjectId(mentorUserId),
     status: 'accepted',
-    paymentStatus: 'paid', // only after payment
+    paymentStatus: 'paid',
   });
 
   if (!session) {
@@ -265,7 +253,6 @@ const addMeetingLink = async (
   session.meetingLink = meetingLink;
   await session.save();
 
-  // Notify learner
   await createNotification({
     userId: session.learner,
     type: 'session',
@@ -293,13 +280,11 @@ const completeSession = async (mentorUserId: string, sessionId: string) => {
   session.status = 'completed';
   await session.save();
 
-  // Increment learner's completedSessionsCount
   await Learner.findOneAndUpdate(
     { userId: session.learner },
     { $inc: { completedSessionsCount: 1 } },
   );
 
-  // Notify both parties
   const mentorUser = await User.findById(mentorUserId).lean();
   const mentorName = mentorUser?.name ?? 'Your mentor';
 
@@ -351,7 +336,6 @@ const rateSession = async (
   const session = await Session.findOne(filter);
   if (!session) throw new Error('Session not found or not completed.');
 
-  // One time only — prevent overwriting
   if (role === 'learner' && session.ratingByLearner !== undefined) {
     throw new Error('You have already rated this session.');
   }
@@ -359,7 +343,6 @@ const rateSession = async (
     throw new Error('You have already rated this session.');
   }
 
-  // Save rating
   if (role === 'learner') {
     session.ratingByLearner = rating;
     session.feedbackByLearner = feedback;
@@ -370,7 +353,6 @@ const rateSession = async (
 
   await session.save();
 
-  // If learner rated — recalculate mentor's overall rating
   if (role === 'learner') {
     const allRatedSessions = await Session.find({
       mentor: session.mentor,
@@ -383,7 +365,6 @@ const rateSession = async (
       allRatedSessions.reduce((sum, s) => sum + (s.ratingByLearner ?? 0), 0) /
       totalReviews;
 
-    // Find mentor profile by userId
     await Mentor.findOneAndUpdate(
       { userId: session.mentor },
       {
