@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { authMiddleware } from '../../middleware/authMiddleware';
+import { authMiddleware } from '../../middleware/authenticate';
 import { roadmapController } from './roadmap_controller';
 
 const router = Router();

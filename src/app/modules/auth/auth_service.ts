@@ -2,7 +2,7 @@ import bcrypt from 'bcryptjs';
 import { OAuth2Client } from 'google-auth-library';
 import jwt from 'jsonwebtoken';
 import mongoose from 'mongoose';
-import { TAuthUser } from '../../middleware/authMiddleware';
+import { TAuthUser } from '../../middleware/authenticate';
 import {
   createAccessToken,
   createRefreshToken,
