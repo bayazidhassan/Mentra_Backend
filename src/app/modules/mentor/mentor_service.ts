@@ -1,5 +1,6 @@
 import { Types } from 'mongoose';
 import groq from '../../config/groq';
+import { validateAvailability } from '../../utils/availability';
 import { Payment } from '../payment/payment_model';
 import { Roadmap } from '../roadmap/roadmap_model'; // adjust path
 import { Session } from '../session/session_model';
@@ -316,6 +317,9 @@ const updateAvailability = async (
   availability: { day: string; startTime: string; endTime: string }[],
   hourlyRate?: number,
 ) => {
+  // ✅ Validate first
+  validateAvailability(availability);
+
   const mentor = await Mentor.findOneAndUpdate(
     { userId: new Types.ObjectId(mentorUserId) },
     {
