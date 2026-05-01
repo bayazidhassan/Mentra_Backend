@@ -64,8 +64,24 @@ const getSuggestedMentors: RequestHandler = async (req, res) => {
   }
 };
 
+const getDashboardStats: RequestHandler = async (req, res) => {
+  try {
+    const data = await mentorService.getDashboardStats(req.user?.id as string);
+    res
+      .status(200)
+      .json({ success: true, message: 'Dashboard stats fetched.', data });
+  } catch (err) {
+    res.status(400).json({
+      success: false,
+      message: (err as Error).message || 'Failed to fetch stats.',
+      data: null,
+    });
+  }
+};
+
 export const mentorController = {
   getMentors,
   getMentorById,
   getSuggestedMentors,
+  getDashboardStats,
 };

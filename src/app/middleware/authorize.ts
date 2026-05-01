@@ -1,7 +1,7 @@
 import { NextFunction, Request, Response } from 'express';
 import { TRole } from '../modules/user/user_interface';
 
-export const requireRole = (...roles: TRole[]) => {
+export const authorize = (...roles: TRole[]) => {
   return (req: Request, res: Response, next: NextFunction) => {
     if (!req.user) {
       return res.status(401).json({

@@ -1,10 +1,10 @@
 import { Router } from 'express';
-import { authMiddleware } from '../../middleware/authenticate';
+import { authenticate } from '../../middleware/authenticate';
 import { messageController } from './message_controller';
 
 const router = Router();
 
-router.use(authMiddleware);
+router.use(authenticate);
 
 router.get('/conversations', messageController.getConversations);
 router.get('/unread-count', messageController.getTotalUnreadCount);

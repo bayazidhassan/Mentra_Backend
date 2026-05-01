@@ -1,19 +1,16 @@
 import { Router } from 'express';
-import { authMiddleware } from '../../middleware/authenticate';
+import { authenticate } from '../../middleware/authenticate';
 import { paymentController } from './payment_controller';
 
 const router = Router();
 
+router.use(authenticate);
+
 router.post(
   '/create-checkout-session',
-  authMiddleware,
   paymentController.createCheckoutSession,
 );
 
-router.get(
-  '/status/:sessionId',
-  authMiddleware,
-  paymentController.getPaymentStatus,
-);
+router.get('/status/:sessionId', paymentController.getPaymentStatus);
 
 export const paymentRoutes = router;

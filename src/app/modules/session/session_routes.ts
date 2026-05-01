@@ -1,10 +1,10 @@
 import { Router } from 'express';
-import { authMiddleware } from '../../middleware/authenticate';
+import { authenticate } from '../../middleware/authenticate';
 import { sessionController } from './session_controller';
 
 const router = Router();
 
-router.use(authMiddleware);
+router.use(authenticate);
 
 router.get('/slots/:mentorId', sessionController.getAvailableSlots);
 router.get('/my-sessions', sessionController.getMySessions);

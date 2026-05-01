@@ -1,10 +1,10 @@
 import { Router } from 'express';
-import { authMiddleware } from '../../middleware/authenticate';
+import { authenticate } from '../../middleware/authenticate';
 import { notificationController } from './notification_controller';
 
 const router = Router();
 
-router.use(authMiddleware);
+router.use(authenticate);
 
 router.get('/', notificationController.getMyNotifications);
 router.get('/unread-count', notificationController.getUnreadCount);

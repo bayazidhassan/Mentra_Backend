@@ -1,21 +1,15 @@
 import { Router } from 'express';
-import { authMiddleware } from '../../middleware/authenticate';
+import { authenticate } from '../../middleware/authenticate';
 import { roadmapController } from './roadmap_controller';
 
 const router = Router();
 
-router.get('/me', authMiddleware, roadmapController.getMyRoadmap);
-router.post('/generate', authMiddleware, roadmapController.generateRoadmap);
-router.post('/create', authMiddleware, roadmapController.createRoadmap);
-router.patch(
-  '/:id/steps/:stepId',
-  authMiddleware,
-  roadmapController.updateStepStatus,
-);
-router.get(
-  '/completed',
-  authMiddleware,
-  roadmapController.getCompletedRoadmaps,
-);
-router.delete('/:id', authMiddleware, roadmapController.deleteRoadmap);
+router.use(authenticate);
+
+router.get('/me', roadmapController.getMyRoadmap);
+router.post('/generate', roadmapController.generateRoadmap);
+router.post('/create', roadmapController.createRoadmap);
+router.patch('/:id/steps/:stepId', roadmapController.updateStepStatus);
+router.get('/completed', roadmapController.getCompletedRoadmaps);
+router.delete('/:id', roadmapController.deleteRoadmap);
 export const roadmapRoutes = router;

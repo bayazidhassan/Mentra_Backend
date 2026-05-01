@@ -1,6 +1,8 @@
 import { Types } from 'mongoose';
 import groq from '../../config/groq';
+import { Payment } from '../payment/payment_model';
 import { Roadmap } from '../roadmap/roadmap_model'; // adjust path
+import { Session } from '../session/session_model';
 import { User } from '../user/user_model'; // adjust path
 import { Mentor } from './mentor_model';
 
@@ -234,8 +236,69 @@ If no mentors score 6 or above, return an empty array [].`,
   return results;
 };
 
+// ─── Get Mentor Dashboard Stats ────────────────────────────────────────────────────────
+const getDashboardStats = async (mentorUserId: string) => {
+  const mentorId = new Types.ObjectId(mentorUserId);
+
+  const [
+    mentorProfile,
+    totalSessions,
+    completedSessions,
+    pendingSessions,
+    acceptedSessions,
+    recentSessions,
+    totalEarnings,
+  ] = await Promise.all([
+    Mentor.findOne({ userId: mentorId }).lean(),
+    Session.countDocuments({ mentor: mentorId }),
+    Session.countDocuments({ mentor: mentorId, status: 'completed' }),
+    Session.countDocuments({ mentor: mentorId, status: 'pending' }),
+    Session.countDocuments({ mentor: mentorId, status: 'accepted' }),
+    Session.find({ mentor: mentorId }).sort({ createdAt: -1 }).limit(5).lean(),
+    Payment.aggregate([
+      { $match: { mentorId, status: 'paid' } },
+      { $group: { _id: null, total: { $sum: '$amount' } } },
+    ]),
+  ]);
+
+  // Enrich recent sessions with learner info
+  const enrichedSessions = await Promise.all(
+    recentSessions.map(async (session) => {
+      const learner = await User.findById(session.learner)
+        .select('name email profileImage')
+        .lean();
+      return {
+        ...session,
+        _id: session._id.toString(),
+        learner: learner
+          ? {
+              _id: learner._id.toString(),
+              name: learner.name,
+              email: learner.email,
+              profileImage: learner.profileImage,
+            }
+          : null,
+      };
+    }),
+  );
+
+  return {
+    stats: {
+      totalSessions,
+      completedSessions,
+      pendingSessions,
+      acceptedSessions,
+      totalEarnings: totalEarnings[0]?.total ?? 0,
+      rating: mentorProfile?.rating ?? 0,
+      totalReviews: mentorProfile?.totalReviews ?? 0,
+    },
+    recentSessions: enrichedSessions,
+  };
+};
+
 export const mentorService = {
   getMentors,
   getMentorById,
   getSuggestedMentors,
+  getDashboardStats,
 };

@@ -1,11 +1,14 @@
 import { Router } from 'express';
-import { authMiddleware } from '../../middleware/authenticate';
+import { authenticate } from '../../middleware/authenticate';
 import { mentorController } from './mentor_controller';
 
 const router = Router();
 
+router.use(authenticate);
+
 router.get('/', mentorController.getMentors);
-router.get('/suggested', authMiddleware, mentorController.getSuggestedMentors);
+router.get('/suggested', mentorController.getSuggestedMentors);
+router.get('/stats', mentorController.getDashboardStats);
 router.get('/:id', mentorController.getMentorById);
 
 export const mentorRoutes = router;

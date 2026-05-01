@@ -16,7 +16,7 @@ declare global {
   }
 }
 
-export const authMiddleware = (
+export const authenticate = (
   req: Request,
   res: Response,
   next: NextFunction,
