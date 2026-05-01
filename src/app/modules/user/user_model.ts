@@ -45,7 +45,7 @@ const userSchema = new Schema<TUser>(
     },
     isVerified: {
       type: Boolean,
-      default: true,
+      default: false,
     },
     isBanned: {
       type: Boolean,

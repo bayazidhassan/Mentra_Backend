@@ -1,12 +1,14 @@
 import bcrypt from 'bcryptjs';
 import { OAuth2Client } from 'google-auth-library';
-import jwt from 'jsonwebtoken';
+import jwt, { JwtPayload } from 'jsonwebtoken';
 import mongoose from 'mongoose';
+import { getBackendURL } from '../../config/env';
 import { TAuthUser } from '../../middleware/authenticate';
 import {
   createAccessToken,
   createRefreshToken,
 } from '../../utils/generateToken';
+import { sendToEmail } from '../../utils/sendToEmail';
 import { Learner } from '../learner/learner_model';
 import { Mentor } from '../mentor/mentor_model';
 import { TUser } from '../user/user_interface';
@@ -52,12 +54,50 @@ const register = async (
     if (!safeUser) {
       throw new Error('User not found.');
     }
+
+    //create app email verification token
+    const emailToken = jwt.sign(
+      { email: user.email },
+      process.env.APP_EMAIL_SECRET!,
+      {
+        expiresIn: '1h',
+      },
+    );
+    const verificationLink = `${getBackendURL()}/api/v1/auth/verify_email/${emailToken}`;
+    const subject = 'Verify Your Email.';
+    const htmlMessage = `
+      <h3>Welcome to Mentra</h3>
+      <p>Please verify your email within 1 hour: <a href="${verificationLink}">Verify Email</a></p>
+    `;
+    //send to email
+    await sendToEmail(user.email, subject, htmlMessage);
+
     return safeUser;
   } catch (error) {
     await session.abortTransaction();
     session.endSession();
     throw error;
   }
+};
+
+const verifyEmail = async (token: string) => {
+  const decoded = jwt.verify(
+    token,
+    process.env.APP_EMAIL_SECRET!,
+  ) as JwtPayload;
+
+  const user = await User.findOne({ email: decoded.email });
+  if (!user) {
+    throw new Error('Invalid token.');
+  }
+  if (user.isVerified) {
+    throw new Error('Email is already verified.');
+  }
+
+  user.isVerified = true;
+  await user.save();
+
+  return user;
 };
 
 const login = async (payload: Pick<TUser, 'email' | 'password'>) => {
@@ -253,6 +293,7 @@ const refreshToken = async (token: string) => {
 
 export const authService = {
   register,
+  verifyEmail,
   login,
   googleLogin,
   setRole,

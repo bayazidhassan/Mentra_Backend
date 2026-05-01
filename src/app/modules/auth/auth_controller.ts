@@ -1,4 +1,5 @@
 import { RequestHandler } from 'express';
+import { getFrontendURL } from '../../config/env';
 import { authService } from './auth_service';
 
 const register: RequestHandler = async (req, res) => {
@@ -7,7 +8,7 @@ const register: RequestHandler = async (req, res) => {
 
     res.status(201).json({
       success: true,
-      message: 'Registration successful.',
+      message: 'Registration successful. Please check your email to verify.',
       data: {
         _id: result._id,
         name: result.name,
@@ -22,6 +23,14 @@ const register: RequestHandler = async (req, res) => {
       data: null,
     });
   }
+};
+
+const verifyEmail: RequestHandler = async (req, res) => {
+  const { token } = req.params;
+
+  await authService.verifyEmail(token as string);
+
+  res.redirect(`${getFrontendURL()}/login`);
 };
 
 const login: RequestHandler = async (req, res) => {
@@ -180,6 +189,7 @@ const logout: RequestHandler = (req, res) => {
 
 export const authController = {
   register,
+  verifyEmail,
   login,
   googleLogin,
   setRole,
