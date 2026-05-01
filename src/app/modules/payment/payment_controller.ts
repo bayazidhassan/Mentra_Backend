@@ -83,8 +83,22 @@ const getPaymentStatus: RequestHandler = async (req, res) => {
   }
 };
 
+const getEarnings: RequestHandler = async (req, res) => {
+  try {
+    const data = await paymentService.getEarnings(req.user?.id as string);
+    res.status(200).json({ success: true, message: 'Earnings fetched.', data });
+  } catch (err) {
+    res.status(400).json({
+      success: false,
+      message: (err as Error).message || 'Failed to fetch earnings.',
+      data: null,
+    });
+  }
+};
+
 export const paymentController = {
   createCheckoutSession,
   handleWebhook,
   getPaymentStatus,
+  getEarnings,
 };

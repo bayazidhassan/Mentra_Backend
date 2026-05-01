@@ -171,8 +171,65 @@ const getPaymentStatus = async (learnerId: string, sessionId: string) => {
   return payment;
 };
 
+// ─── getEarnings ──────────────────────────────────────────────────────────────
+const getEarnings = async (mentorUserId: string) => {
+  const mentorId = new Types.ObjectId(mentorUserId);
+
+  const payments = await Payment.find({
+    mentorId,
+    status: 'paid',
+  })
+    .sort({ createdAt: -1 })
+    .lean();
+
+  const totalEarnings = payments.reduce((sum, p) => sum + p.amount, 0);
+
+  // Enrich with session info
+  const enriched = await Promise.all(
+    payments.map(async (payment) => {
+      const session = await Session.findById(payment.sessionId)
+        .select('title scheduledAt durationMinutes')
+        .lean();
+
+      const learner = await User.findById(payment.learnerId)
+        .select('name email profileImage')
+        .lean();
+
+      return {
+        _id: payment._id.toString(),
+        amount: payment.amount,
+        currency: payment.currency,
+        status: payment.status,
+        createdAt: payment.createdAt.toISOString(),
+        session: session
+          ? {
+              title: session.title,
+              scheduledAt: session.scheduledAt.toISOString(),
+              durationMinutes: session.durationMinutes,
+            }
+          : null,
+        learner: learner
+          ? {
+              _id: learner._id.toString(),
+              name: learner.name,
+              email: learner.email,
+              profileImage: learner.profileImage,
+            }
+          : null,
+      };
+    }),
+  );
+
+  return {
+    payments: enriched,
+    totalEarnings,
+    totalPayments: payments.length,
+  };
+};
+
 export const paymentService = {
   createCheckoutSession,
   handleWebhook,
   getPaymentStatus,
+  getEarnings,
 };

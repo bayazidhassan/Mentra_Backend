@@ -11,4 +11,6 @@ export type TPayment = {
   status: TPaymentStatus;
   stripeSessionId?: string;
   transactionId?: string;
+  createdAt: Date;
+  updatedAt: Date;
 };
