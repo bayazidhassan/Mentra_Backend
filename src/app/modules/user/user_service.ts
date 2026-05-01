@@ -1,6 +1,7 @@
 import bcrypt from 'bcryptjs';
 import mongoose from 'mongoose';
 import { TProfilePayload } from '../../types/profile';
+import { validateAvailability } from '../../utils/availability';
 import uploadImageToCloudinary from '../../utils/uploadImageToCloudinary';
 import { Learner } from '../learner/learner_model';
 import { Mentor } from '../mentor/mentor_model';
@@ -100,8 +101,13 @@ const updateProfile = async (
       if (payload.bio) mentor.bio = payload.bio;
       if (payload.experience) mentor.experience = payload.experience;
       if (payload.hourlyRate) mentor.hourlyRate = Number(payload.hourlyRate);
-      if (payload.availability)
-        mentor.availability = JSON.parse(payload.availability);
+      if (payload.availability) {
+        const parsedAvailability = JSON.parse(payload.availability);
+        // ✅ VALIDATE HERE
+        validateAvailability(parsedAvailability);
+
+        mentor.availability = parsedAvailability;
+      }
       await mentor.save({ session });
       mentorData = mentor;
     }
