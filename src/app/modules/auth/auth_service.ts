@@ -20,6 +20,7 @@ const register = async (
   payload: Pick<TUser, 'name' | 'email' | 'role' | 'password'>,
 ) => {
   const session = await mongoose.startSession();
+  let user: any = null;
 
   try {
     session.startTransaction();
@@ -38,7 +39,7 @@ const register = async (
       { session },
     );
 
-    const user = newUser[0];
+    user = newUser[0];
 
     if (role === 'learner') {
       await Learner.create([{ userId: user._id }], { session });
@@ -49,35 +50,35 @@ const register = async (
 
     await session.commitTransaction();
     session.endSession();
-
-    const safeUser = await User.findById(user._id).select('-password');
-    if (!safeUser) {
-      throw new Error('User not found.');
-    }
-
-    //create app email verification token
-    const emailToken = jwt.sign(
-      { email: user.email },
-      process.env.VERIFY_EMAIL_SECRET!,
-      {
-        expiresIn: '1h',
-      },
-    );
-    const verificationLink = `${getBackendURL()}/api/v1/auth/verify_email/${emailToken}`;
-    const subject = 'Verify Your Email.';
-    const htmlMessage = `
-      <h3>Welcome to Mentra</h3>
-      <p>Please verify your email within 1 hour: <a href="${verificationLink}">Verify Email</a></p>
-    `;
-    //send to email
-    await sendToEmail(user.email, subject, htmlMessage);
-
-    return safeUser;
   } catch (error) {
     await session.abortTransaction();
     session.endSession();
     throw error;
   }
+
+  // Email is completely outside the transaction block
+  const safeUser = await User.findById(user._id).select('-password');
+  if (!safeUser) throw new Error('User not found.');
+
+  try {
+    const emailToken = jwt.sign(
+      { email: user.email },
+      process.env.VERIFY_EMAIL_SECRET!,
+      { expiresIn: '1h' },
+    );
+    const verificationLink = `${getBackendURL()}/api/v1/auth/verify_email/${emailToken}`;
+    await sendToEmail(
+      user.email,
+      'Verify Your Email.',
+      `<h3>Welcome to Mentra</h3>
+       <p>Please verify your email within 1 hour: <a href="${verificationLink}">Verify Email</a></p>`,
+    );
+  } catch (emailError) {
+    console.error('[EMAIL ERROR]', emailError);
+    // Don't throw — user is already created successfully
+  }
+
+  return safeUser;
 };
 
 const verifyEmail = async (token: string) => {
