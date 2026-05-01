@@ -1,22 +1,24 @@
-import { Resend } from 'resend';
-
-const resend = new Resend(process.env.RESEND_API_KEY);
-
 export const sendToEmail = async (
   to: string,
   subject: string,
   html: string,
 ) => {
-  const { data, error } = await resend.emails.send({
-    from: 'Mentra <onboarding@resend.dev>',
-    to,
-    subject,
-    html,
+  const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'api-key': process.env.BREVO_API_KEY!,
+    },
+    body: JSON.stringify({
+      sender: { name: 'Mentra', email: process.env.BREVO_USER },
+      to: [{ email: to }],
+      subject,
+      htmlContent: html,
+    }),
   });
 
-  if (error) {
-    throw new Error(`Email send failed: ${error.message}`);
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(`Email send failed: ${JSON.stringify(error)}`);
   }
-
-  return data;
 };
