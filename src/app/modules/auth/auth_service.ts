@@ -58,7 +58,7 @@ const register = async (
     //create app email verification token
     const emailToken = jwt.sign(
       { email: user.email },
-      process.env.APP_EMAIL_SECRET!,
+      process.env.VERIFY_EMAIL_SECRET!,
       {
         expiresIn: '1h',
       },
@@ -83,7 +83,7 @@ const register = async (
 const verifyEmail = async (token: string) => {
   const decoded = jwt.verify(
     token,
-    process.env.APP_EMAIL_SECRET!,
+    process.env.VERIFY_EMAIL_SECRET!,
   ) as JwtPayload;
 
   const user = await User.findOne({ email: decoded.email });
