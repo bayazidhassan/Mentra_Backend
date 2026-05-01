@@ -81,9 +81,56 @@ const getMentorDashboardStats: RequestHandler = async (req, res) => {
   }
 };
 
+const getAvailability: RequestHandler = async (req, res) => {
+  try {
+    const data = await mentorService.getAvailability(req.user?.id as string);
+    res
+      .status(200)
+      .json({ success: true, message: 'Availability fetched.', data });
+  } catch (err) {
+    res.status(400).json({
+      success: false,
+      message: (err as Error).message || 'Failed to fetch availability.',
+      data: null,
+    });
+  }
+};
+
+const updateAvailability: RequestHandler = async (req, res) => {
+  try {
+    const { availability, hourlyRate } = req.body;
+
+    if (!Array.isArray(availability)) {
+      res.status(400).json({
+        success: false,
+        message: 'availability must be an array.',
+        data: null,
+      });
+      return;
+    }
+
+    const data = await mentorService.updateAvailability(
+      req.user?.id as string,
+      availability,
+      hourlyRate,
+    );
+    res
+      .status(200)
+      .json({ success: true, message: 'Availability updated.', data });
+  } catch (err) {
+    res.status(400).json({
+      success: false,
+      message: (err as Error).message || 'Failed to update availability.',
+      data: null,
+    });
+  }
+};
+
 export const mentorController = {
   getMentors,
   getMentorById,
   getSuggestedMentors,
   getMentorDashboardStats,
+  getAvailability,
+  updateAvailability,
 };

@@ -296,9 +296,46 @@ const getMentorDashboardStats = async (mentorUserId: string) => {
   };
 };
 
+// ─── getAvailability ──────────────────────────────────────────────────────────
+const getAvailability = async (mentorUserId: string) => {
+  const mentor = await Mentor.findOne({
+    userId: new Types.ObjectId(mentorUserId),
+  }).lean();
+
+  if (!mentor) throw new Error('Mentor profile not found.');
+
+  return {
+    availability: mentor.availability ?? [],
+    hourlyRate: mentor.hourlyRate,
+  };
+};
+
+// ─── updateAvailability ───────────────────────────────────────────────────────
+const updateAvailability = async (
+  mentorUserId: string,
+  availability: { day: string; startTime: string; endTime: string }[],
+  hourlyRate?: number,
+) => {
+  const mentor = await Mentor.findOneAndUpdate(
+    { userId: new Types.ObjectId(mentorUserId) },
+    {
+      $set: {
+        availability,
+        ...(hourlyRate !== undefined && { hourlyRate }),
+      },
+    },
+    { returnDocument: 'after' },
+  );
+
+  if (!mentor) throw new Error('Mentor profile not found.');
+  return mentor;
+};
+
 export const mentorService = {
   getMentors,
   getMentorById,
   getSuggestedMentors,
   getMentorDashboardStats,
+  getAvailability,
+  updateAvailability,
 };
