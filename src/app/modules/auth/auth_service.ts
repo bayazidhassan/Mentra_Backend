@@ -28,7 +28,8 @@ const register = async (
       throw new Error('User already exists.');
     }
 
-    const hashedPassword = await bcrypt.hash(password as string, 12);
+    const saltRounds = Number(process.env.BCRYPT_SALT) || 12;
+    const hashedPassword = await bcrypt.hash(password as string, saltRounds);
 
     const newUser = await User.create(
       [{ ...payload, password: hashedPassword }],

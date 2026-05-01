@@ -4,11 +4,15 @@ dotenv.config();
 import { createServer } from 'http';
 import app from './app';
 import connectDB from './app/config/db';
+import { seedAdmin } from './app/seed/adminSeeder';
 import { initSocket } from './socket';
 
 const startServer = async () => {
   try {
     await connectDB();
+
+    // Seed admin AFTER DB is connected
+    await seedAdmin();
 
     // Wrap express app in http server — required for Socket.IO
     const httpServer = createServer(app);

@@ -167,7 +167,8 @@ const changePassword = async (
     throw new Error('Current password is incorrect.');
   }
 
-  user.password = await bcrypt.hash(newPassword, 12);
+  const saltRounds = Number(process.env.BCRYPT_SALT) || 12;
+  user.password = await bcrypt.hash(newPassword, saltRounds);
   await user.save();
 
   return { message: 'Password changed successfully.' };

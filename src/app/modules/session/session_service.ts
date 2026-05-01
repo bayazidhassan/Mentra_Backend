@@ -285,9 +285,6 @@ const completeSession = async (mentorUserId: string, sessionId: string) => {
     { $inc: { completedSessionsCount: 1 } },
   );
 
-  const mentorUser = await User.findById(mentorUserId).lean();
-  const mentorName = mentorUser?.name ?? 'Your mentor';
-
   await createNotification({
     userId: session.learner,
     type: 'session',
