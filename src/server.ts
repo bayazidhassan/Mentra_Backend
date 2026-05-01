@@ -12,7 +12,7 @@ const startServer = async () => {
     await connectDB();
 
     // Seed admin AFTER DB is connected
-    await seedAdmin();
+    //await seedAdmin();
 
     // Wrap express app in http server — required for Socket.IO
     const httpServer = createServer(app);
