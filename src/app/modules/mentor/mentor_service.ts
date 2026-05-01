@@ -237,7 +237,7 @@ If no mentors score 6 or above, return an empty array [].`,
 };
 
 // ─── Get Mentor Dashboard Stats ────────────────────────────────────────────────────────
-const getDashboardStats = async (mentorUserId: string) => {
+const getMentorDashboardStats = async (mentorUserId: string) => {
   const mentorId = new Types.ObjectId(mentorUserId);
 
   const [
@@ -300,5 +300,5 @@ export const mentorService = {
   getMentors,
   getMentorById,
   getSuggestedMentors,
-  getDashboardStats,
+  getMentorDashboardStats,
 };

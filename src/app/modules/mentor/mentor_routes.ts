@@ -8,7 +8,7 @@ router.use(authenticate);
 
 router.get('/', mentorController.getMentors);
 router.get('/suggested', mentorController.getSuggestedMentors);
-router.get('/stats', mentorController.getDashboardStats);
+router.get('/stats', mentorController.getMentorDashboardStats);
 router.get('/:id', mentorController.getMentorById);
 
 export const mentorRoutes = router;

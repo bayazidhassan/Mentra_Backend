@@ -64,9 +64,11 @@ const getSuggestedMentors: RequestHandler = async (req, res) => {
   }
 };
 
-const getDashboardStats: RequestHandler = async (req, res) => {
+const getMentorDashboardStats: RequestHandler = async (req, res) => {
   try {
-    const data = await mentorService.getDashboardStats(req.user?.id as string);
+    const data = await mentorService.getMentorDashboardStats(
+      req.user?.id as string,
+    );
     res
       .status(200)
       .json({ success: true, message: 'Dashboard stats fetched.', data });
@@ -83,5 +85,5 @@ export const mentorController = {
   getMentors,
   getMentorById,
   getSuggestedMentors,
-  getDashboardStats,
+  getMentorDashboardStats,
 };

@@ -1,34 +1,46 @@
 import { RequestHandler } from 'express';
-import { Learner } from './learner_model';
+import { learnerService } from './learner_service';
 
-const getLearner: RequestHandler = async (req, res) => {
+const getMyLearners: RequestHandler = async (req, res) => {
   try {
-    if (!req.user?.id) {
-      res.status(401).json({
-        success: false,
-        message: 'Unauthorized.',
-        data: null,
-      });
-      return;
-    }
-    const roadmap = await Learner.findOne({ userId: req.user.id });
-    if (!roadmap) {
-      throw new Error('Roadmap not found.');
-    }
-    res.status(200).json({
-      success: true,
-      message: 'Roadmap fetched successfully.',
-      data: roadmap,
-    });
+    const learners = await learnerService.getMyLearners(req.user?.id as string);
+    res
+      .status(200)
+      .json({ success: true, message: 'Learners fetched.', data: learners });
   } catch (err) {
-    res.status(500).json({
+    res.status(400).json({
       success: false,
-      message: (err as Error).message || 'Failed to fetch learner.',
+      message: (err as Error).message || 'Failed to fetch learners.',
+      data: null,
+    });
+  }
+};
+
+const getAllLearners: RequestHandler = async (req, res) => {
+  try {
+    const {
+      search = '',
+      page = '1',
+      limit = '10',
+    } = req.query as Record<string, string>;
+    const data = await learnerService.getAllLearners({
+      search,
+      page: parseInt(page),
+      limit: parseInt(limit),
+    });
+    res
+      .status(200)
+      .json({ success: true, message: 'All learners fetched.', data });
+  } catch (err) {
+    res.status(400).json({
+      success: false,
+      message: (err as Error).message || 'Failed to fetch learners.',
       data: null,
     });
   }
 };
 
 export const learnerController = {
-  getLearner,
+  getMyLearners,
+  getAllLearners,
 };
