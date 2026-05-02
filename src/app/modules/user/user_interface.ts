@@ -15,4 +15,6 @@ export type TUser = {
   isVerified: boolean;
   isBanned: boolean;
   lastLogin?: Date;
+  createdAt: Date;
+  updatedAt: Date;
 };
