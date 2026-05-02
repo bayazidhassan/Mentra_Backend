@@ -16,6 +16,7 @@ app.use(
 // The Stripe webhook requires the RAW request body (not parsed JSON).
 // You must register the webhook routes BEFORE app.use(express.json()) middleware.
 // Webhook must use raw body
+// Run this command in terminal: stripe listen --forward-to http://localhost:5000/api/v1/payment/webhook
 app.use(
   '/api/v1/payment/webhook',
   express.raw({ type: 'application/json' }),
