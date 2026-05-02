@@ -49,7 +49,7 @@ const mentorSchema = new Schema<TMentor>(
     },
     isApproved: {
       type: Boolean,
-      default: true,
+      default: false,
     },
   },
   {
