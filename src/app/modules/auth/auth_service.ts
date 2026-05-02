@@ -56,7 +56,6 @@ const register = async (
     throw error;
   }
 
-  // Email is completely outside the transaction block
   const safeUser = await User.findById(user._id).select('-password');
   if (!safeUser) throw new Error('User not found.');
 
@@ -75,7 +74,6 @@ const register = async (
     );
   } catch (emailError) {
     console.error('[EMAIL ERROR]', emailError);
-    // Don't throw — user is already created successfully
   }
 
   return safeUser;
@@ -117,6 +115,11 @@ const login = async (payload: Pick<TUser, 'email' | 'password'>) => {
     if (!mentor?.isApproved) {
       throw new Error('Your account has not been approved yet.');
     }
+  }
+  if (!user.password && user.google?.googleId) {
+    throw new Error(
+      "Please sign in with Google. This account doesn't support password login.",
+    );
   }
 
   const isMatch = await bcrypt.compare(payload.password!, user.password!);
