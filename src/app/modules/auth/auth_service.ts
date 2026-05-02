@@ -162,6 +162,15 @@ const googleLogin = async (idToken: string) => {
   // existing google user
   let user = await User.findOne({ 'google.googleId': googleId });
   if (user) {
+    if (user.isBanned) {
+      throw new Error('Your account has been banned.');
+    }
+    if (user.role === 'mentor') {
+      const mentor = await Mentor.findOne({ userId: user._id });
+      if (!mentor?.isApproved) {
+        throw new Error('Your account has not been approved yet.');
+      }
+    }
     const accessToken = createAccessToken({
       id: user._id.toString(),
       name: user.name,
@@ -180,6 +189,15 @@ const googleLogin = async (idToken: string) => {
   // existing email user
   const existingUser = await User.findOne({ email });
   if (existingUser) {
+    if (existingUser.isBanned) {
+      throw new Error('Your account has been banned.');
+    }
+    if (existingUser.role === 'mentor') {
+      const mentor = await Mentor.findOne({ userId: existingUser._id });
+      if (!mentor?.isApproved) {
+        throw new Error('Your account has not been approved yet.');
+      }
+    }
     existingUser.google = { googleId, roleUpdated: true };
     existingUser.profileImage = picture;
     existingUser.isVerified = true;
