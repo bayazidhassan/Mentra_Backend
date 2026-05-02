@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { adminRoutes } from '../modules/admin/admin_routes';
 import { authRoutes } from '../modules/auth/auth_routes';
 import { learnerRoutes } from '../modules/learner/learner_routes';
 import { mentorRoutes } from '../modules/mentor/mentor_routes';
@@ -20,5 +21,6 @@ router.use('/mentor', mentorRoutes);
 router.use('/notification', notificationRoutes);
 router.use('/payment', paymentRoutes);
 router.use('/message', messageRoutes);
+router.use('/admin', adminRoutes);
 
 export default router;
