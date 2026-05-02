@@ -239,7 +239,9 @@ const getSessions = async ({
         (s) =>
           s.title.toLowerCase().includes(search.toLowerCase()) ||
           s.learnerName.toLowerCase().includes(search.toLowerCase()) ||
-          s.mentorName.toLowerCase().includes(search.toLowerCase()),
+          s.mentorName.toLowerCase().includes(search.toLowerCase()) ||
+          s.learnerEmail.toLowerCase().includes(search.toLowerCase()) ||
+          s.mentorEmail.toLowerCase().includes(search.toLowerCase()),
       )
     : enriched;
 
