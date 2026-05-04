@@ -195,6 +195,26 @@ const forgotPassword: RequestHandler = async (req, res) => {
   }
 };
 
+const resetPassword: RequestHandler = async (req, res) => {
+  try {
+    const { token, password } = req.body;
+
+    await authService.resetPassword(token, password);
+
+    res.status(200).json({
+      success: true,
+      message: 'Password reset successful!',
+      data: null,
+    });
+  } catch (err) {
+    res.status(400).json({
+      success: false,
+      message: (err as Error).message || 'Password reset failed.',
+      data: null,
+    });
+  }
+};
+
 const logout: RequestHandler = (req, res) => {
   res
     .clearCookie('refreshToken', {
@@ -214,5 +234,6 @@ export const authController = {
   setRole,
   refreshToken,
   forgotPassword,
+  resetPassword,
   logout,
 };

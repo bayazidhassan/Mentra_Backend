@@ -59,35 +59,38 @@ const register = async (
   const safeUser = await User.findById(user._id).select('-password');
   if (!safeUser) throw new Error('User not found.');
 
-  try {
-    const emailToken = jwt.sign(
-      { email: user.email },
-      process.env.VERIFY_EMAIL_SECRET!,
-      { expiresIn: '1h' },
-    );
-    const verificationLink = `${getBackendURL()}/api/v1/auth/verify_email/${emailToken}`;
-    await sendToEmail(
-      user.email,
-      'Verify Your Email.',
-      `<h3>Welcome to Mentra</h3>
+  const emailToken = jwt.sign(
+    { email: user.email },
+    process.env.VERIFY_EMAIL_SECRET!,
+    { expiresIn: '1h' },
+  );
+  const verificationLink = `${getBackendURL()}/api/v1/auth/verify-email/${emailToken}`;
+  await sendToEmail(
+    user.email,
+    'Verify Your Email.',
+    `<h3>Welcome to Mentra</h3>
        <p>Please verify your email within 1 hour: <a href="${verificationLink}">Verify Email</a></p>`,
-    );
-  } catch (emailError) {
-    console.error('[EMAIL ERROR]', emailError);
-  }
+  );
 
   return safeUser;
 };
 
 const verifyEmail = async (token: string) => {
-  const decoded = jwt.verify(
-    token,
-    process.env.VERIFY_EMAIL_SECRET!,
-  ) as JwtPayload;
+  const secret = process.env.VERIFY_EMAIL_SECRET;
+  if (!secret) {
+    throw new Error('Verify email secret missing.');
+  }
+
+  let decoded: JwtPayload;
+  try {
+    decoded = jwt.verify(token, secret) as JwtPayload;
+  } catch {
+    throw new Error('Invalid or expired verification token.');
+  }
 
   const user = await User.findOne({ email: decoded.email });
   if (!user) {
-    throw new Error('Invalid token.');
+    throw new Error('User not found.');
   }
   if (user.isVerified) {
     throw new Error('Email is already verified.');
@@ -301,7 +304,17 @@ const setRole = async (userId: string, role: 'learner' | 'mentor') => {
 };
 
 const refreshToken = async (token: string) => {
-  const decoded = jwt.verify(token, process.env.REFRESH_TOKEN!) as TAuthUser;
+  const secret = process.env.REFRESH_TOKEN;
+  if (!secret) {
+    throw new Error('Refresh token missing.');
+  }
+
+  let decoded: TAuthUser;
+  try {
+    decoded = jwt.verify(token, secret) as TAuthUser;
+  } catch {
+    throw new Error('Invalid or expired refresh token.');
+  }
 
   const accessToken = createAccessToken({
     id: decoded.id,
@@ -319,10 +332,15 @@ const forgotPassword = async (email: string) => {
   // prevent email enumeration
   if (!user) return true;
 
-  const secret = process.env.RESET_PASSWORD_SECRET! + user.password;
+  const reset_password_secret = process.env.RESET_PASSWORD_SECRET;
+  if (!reset_password_secret) {
+    throw new Error('Reset password secret missing.');
+  }
+
+  const secret = reset_password_secret + user.password;
   const token = jwt.sign({ userId: user._id }, secret, { expiresIn: '10m' });
 
-  const resetLink = `${getFrontendURL}/reset-password/${user._id}/${token}`;
+  const resetLink = `${getFrontendURL()}/reset-password?token=${token}`;
 
   await sendToEmail(
     user.email,
@@ -335,6 +353,44 @@ const forgotPassword = async (email: string) => {
   return true;
 };
 
+const resetPassword = async (token: string, newPassword: string) => {
+  const decodedRaw = jwt.decode(token) as { userId: string } | null;
+  if (!decodedRaw?.userId) {
+    throw new Error('Invalid reset token.');
+  }
+
+  const user = await User.findById(decodedRaw.userId).select('+password');
+  if (!user) {
+    throw new Error('User not found.');
+  }
+  if (user.google?.googleId) {
+    throw new Error('This account uses Google login.');
+  }
+  if (newPassword.length < 8) {
+    throw new Error('Password must be at least 8 characters long.');
+  }
+
+  const baseSecret = process.env.RESET_PASSWORD_SECRET;
+  if (!baseSecret) {
+    throw new Error('Reset password secret missing.');
+  }
+
+  const secret = baseSecret + user.password;
+
+  try {
+    jwt.verify(token, secret);
+  } catch {
+    throw new Error('Invalid or expired reset token.');
+  }
+
+  const saltRounds = Number(process.env.BCRYPT_SALT) || 12;
+  user.password = await bcrypt.hash(newPassword, saltRounds);
+
+  await user.save();
+
+  return true;
+};
+
 export const authService = {
   register,
   verifyEmail,
@@ -343,4 +399,5 @@ export const authService = {
   setRole,
   refreshToken,
   forgotPassword,
+  resetPassword,
 };
