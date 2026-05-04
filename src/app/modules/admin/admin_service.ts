@@ -1,3 +1,5 @@
+import { getFrontendURL } from '../../config/env';
+import { sendToEmail } from '../../utils/sendToEmail';
 import { Mentor } from '../mentor/mentor_model';
 import { Payment } from '../payment/payment_model';
 import { Session } from '../session/session_model';
@@ -190,6 +192,16 @@ const approveMentor = async (mentorProfileId: string) => {
     { returnDocument: 'after' },
   );
   if (!mentor) throw new Error('Mentor not found.');
+  const user = await User.findById(mentor.userId);
+  if (!user) throw new Error('User not found.');
+  const loginLink = `${getFrontendURL()}/login`;
+  await sendToEmail(
+    user.email,
+    'Your Account Has Been Approved',
+    `<h3>Welcome to Mentra 🎉</h3>
+     <p>Your account is now approved.</p>
+     <p><a href="${loginLink}">Click here to login</a></p>`,
+  );
   return mentor;
 };
 
