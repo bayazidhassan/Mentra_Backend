@@ -2,7 +2,7 @@ import bcrypt from 'bcryptjs';
 import { OAuth2Client } from 'google-auth-library';
 import jwt, { JwtPayload } from 'jsonwebtoken';
 import mongoose from 'mongoose';
-import { getBackendURL } from '../../config/env';
+import { getBackendURL, getFrontendURL } from '../../config/env';
 import { TAuthUser } from '../../middleware/authenticate';
 import {
   createAccessToken,
@@ -313,6 +313,28 @@ const refreshToken = async (token: string) => {
   return { accessToken };
 };
 
+const forgotPassword = async (email: string) => {
+  const user = await User.findOne({ email }).select('+password');
+
+  // prevent email enumeration
+  if (!user) return true;
+
+  const secret = process.env.RESET_PASSWORD_SECRET! + user.password;
+  const token = jwt.sign({ userId: user._id }, secret, { expiresIn: '10m' });
+
+  const resetLink = `${getFrontendURL}/reset-password/${user._id}/${token}`;
+
+  await sendToEmail(
+    user.email,
+    'Reset Your Password',
+    `<p>Click below to reset your password:</p>
+     <a href="${resetLink}">Reset Password</a>
+     <p>This link expires in 10 minutes.</p>`,
+  );
+
+  return true;
+};
+
 export const authService = {
   register,
   verifyEmail,
@@ -320,4 +342,5 @@ export const authService = {
   googleLogin,
   setRole,
   refreshToken,
+  forgotPassword,
 };
