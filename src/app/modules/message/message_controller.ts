@@ -116,30 +116,10 @@ const getTotalUnreadCount: RequestHandler = async (req, res) => {
   }
 };
 
-const getUnreadConversationIds: RequestHandler = async (req, res) => {
-  try {
-    const conversationIds = await messageService.getUnreadConversationIds(
-      req.user?.id as string,
-    );
-    res.status(200).json({
-      success: true,
-      message: 'Unread conversations fetched successfully.',
-      data: { conversationIds },
-    });
-  } catch (err) {
-    res.status(400).json({
-      success: false,
-      message: (err as Error).message || 'Failed to fetch unread conversation.',
-      data: null,
-    });
-  }
-};
-
 export const messageController = {
   getConversations,
   getMessages,
   sendMessage,
   markAsRead,
   getTotalUnreadCount,
-  getUnreadConversationIds,
 };

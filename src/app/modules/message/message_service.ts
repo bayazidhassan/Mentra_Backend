@@ -185,21 +185,11 @@ const getConversations = async (userId: string) => {
 // ─── getTotalUnreadCount ──────────────────────────────────────────────────────
 
 const getTotalUnreadCount = async (userId: string) => {
-  const conversations = await Message.distinct('conversationId', {
+  const count = await Message.countDocuments({
     receiverId: new Types.ObjectId(userId),
     isRead: false,
   });
-
-  return conversations.length;
-};
-
-const getUnreadConversationIds = async (userId: string) => {
-  const conversationIds = await Message.distinct('conversationId', {
-    receiverId: new Types.ObjectId(userId),
-    isRead: false,
-  });
-
-  return conversationIds;
+  return count;
 };
 
 export const messageService = {
@@ -210,5 +200,4 @@ export const messageService = {
   markAsRead,
   getConversations,
   getTotalUnreadCount,
-  getUnreadConversationIds
 };
