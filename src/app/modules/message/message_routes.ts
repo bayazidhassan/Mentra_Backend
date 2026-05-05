@@ -8,9 +8,9 @@ router.use(authenticate);
 
 router.get('/conversations', messageController.getConversations);
 router.get('/unread-count', messageController.getTotalUnreadCount);
-router.get('/:otherUserId', messageController.getMessages);
-router.post('/send', messageController.sendMessage);
 router.get('/unread-conversations', messageController.getUnreadConversationIds);
+router.post('/send', messageController.sendMessage);
 router.patch('/read/:otherUserId', messageController.markAsRead);
+router.get('/:otherUserId', messageController.getMessages);
 
 export const messageRoutes = router;
