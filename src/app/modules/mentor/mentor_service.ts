@@ -255,7 +255,10 @@ const getMentorDashboardStats = async (mentorUserId: string) => {
     Session.countDocuments({ mentor: mentorId, status: 'completed' }),
     Session.countDocuments({ mentor: mentorId, status: 'pending' }),
     Session.countDocuments({ mentor: mentorId, status: 'accepted' }),
-    Session.find({ mentor: mentorId }).sort({ createdAt: -1 }).limit(5).lean(),
+    Session.find({ mentor: mentorId, status: { $in: ['pending', 'accepted'] } })
+      .sort({ scheduledAt: 1 })
+      .limit(3)
+      .lean(),
     Payment.aggregate([
       { $match: { mentorId, status: 'paid' } },
       { $group: { _id: null, total: { $sum: '$amount' } } },
