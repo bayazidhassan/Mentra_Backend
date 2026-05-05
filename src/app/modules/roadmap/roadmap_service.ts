@@ -10,9 +10,6 @@ const getMyRoadmap = async (learnerId: string) => {
   }).sort({
     createdAt: -1,
   });
-  if (!roadmap) {
-    throw new Error('Roadmap not found.');
-  }
   return roadmap;
 };
 
