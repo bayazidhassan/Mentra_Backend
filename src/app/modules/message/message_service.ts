@@ -193,6 +193,15 @@ const getTotalUnreadCount = async (userId: string) => {
   return conversations.length;
 };
 
+const getUnreadConversationIds = async (userId: string) => {
+  const conversationIds = await Message.distinct('conversationId', {
+    receiverId: new Types.ObjectId(userId),
+    isRead: false,
+  });
+
+  return conversationIds;
+};
+
 export const messageService = {
   buildConversationId,
   checkChatAccess,
@@ -201,4 +210,5 @@ export const messageService = {
   markAsRead,
   getConversations,
   getTotalUnreadCount,
+  getUnreadConversationIds
 };
