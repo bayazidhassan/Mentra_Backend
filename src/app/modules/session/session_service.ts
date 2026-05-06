@@ -277,6 +277,25 @@ const completeSession = async (mentorUserId: string, sessionId: string) => {
     throw new Error('Session not found or cannot be completed.');
   }
 
+  const now = new Date();
+  const sessionStart = new Date(session.scheduledAt);
+  const sessionEnd = new Date(
+    sessionStart.getTime() + session.durationMinutes * 60 * 1000,
+  );
+  const formatDate = (date: Date) => {
+    return date.toLocaleString([], {
+      hour: 'numeric',
+      minute: '2-digit',
+      day: 'numeric',
+      month: 'short',
+    });
+  };
+  if (now < sessionEnd) {
+    throw new Error(
+      `You can complete this session after ${formatDate(sessionEnd)}.`,
+    );
+  }
+
   session.status = 'completed';
   await session.save();
 
