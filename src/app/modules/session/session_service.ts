@@ -282,17 +282,19 @@ const completeSession = async (mentorUserId: string, sessionId: string) => {
   const sessionEnd = new Date(
     sessionStart.getTime() + session.durationMinutes * 60 * 1000,
   );
-  const formatDate = (date: Date) => {
-    return date.toLocaleString([], {
+  const formatDateAndTime = (date: Date) =>
+    new Date(date).toLocaleString(undefined, {
+      weekday: 'short',
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
       hour: 'numeric',
       minute: '2-digit',
-      day: 'numeric',
-      month: 'short',
+      hour12: true,
     });
-  };
   if (now < sessionEnd) {
     throw new Error(
-      `You can complete this session after ${formatDate(sessionEnd)}.`,
+      `You can complete this session after ${formatDateAndTime(sessionEnd)}.`,
     );
   }
 
