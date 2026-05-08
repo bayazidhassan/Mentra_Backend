@@ -260,7 +260,7 @@ const getMentorDashboardStats = async (mentorUserId: string) => {
       status: { $in: ['pending', 'accepted', 'completed', 'cancelled'] },
     })
       .sort({ scheduledAt: 1 })
-      .limit(5)
+      .limit(3)
       .lean(),
     Payment.aggregate([
       { $match: { mentorId, status: 'paid' } },
