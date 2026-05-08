@@ -32,7 +32,7 @@ const generateRoadmap = async (learnerId: string, goal: string) => {
     status: 'active',
   });
   if (existing) {
-    throw new Error('You already have a roadmap.');
+    throw new Error('You already have an active roadmap.');
   }
 
   const completion = await groq.chat.completions.create({
@@ -147,7 +147,7 @@ const createRoadmap = async (
     status: 'active',
   });
   if (existing) {
-    throw new Error('You already have a roadmap.');
+    throw new Error('You already have an active roadmap.');
   }
 
   const roadmap = await Roadmap.create({
