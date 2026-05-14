@@ -10,8 +10,8 @@ router.post(
   '/create-checkout-session',
   paymentController.createCheckoutSession,
 );
-
 router.get('/earnings', paymentController.getEarnings);
+router.get('/revenue', paymentController.getRevenue);
 router.get('/status/:sessionId', paymentController.getPaymentStatus);
 
 export const paymentRoutes = router;

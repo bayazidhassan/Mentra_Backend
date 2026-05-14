@@ -227,9 +227,70 @@ const getEarnings = async (mentorUserId: string) => {
   };
 };
 
+export const getRevenue = async () => {
+  const payments = await Payment.find({ status: 'paid' })
+    .sort({ createdAt: -1 })
+    .lean();
+
+  const totalRevenue = payments.reduce((sum, p) => sum + p.amount, 0);
+  const adminProfit = totalRevenue * 0.05;
+
+  const enriched = await Promise.all(
+    payments.map(async (payment) => {
+      const session = await Session.findById(payment.sessionId)
+        .select('title scheduledAt durationMinutes')
+        .lean();
+
+      const learner = await User.findById(payment.learnerId)
+        .select('name email profileImage')
+        .lean();
+
+      const mentor = await User.findById(payment.mentorId)
+        .select('name email profileImage')
+        .lean();
+
+      return {
+        _id: payment._id.toString(),
+        amount: payment.amount,
+        currency: payment.currency,
+        createdAt: payment.createdAt.toISOString(),
+        session: session
+          ? {
+              title: session.title,
+              scheduledAt: session.scheduledAt.toISOString(),
+              durationMinutes: session.durationMinutes,
+            }
+          : null,
+        learner: learner
+          ? {
+              name: learner.name,
+              email: learner.email,
+              profileImage: learner.profileImage,
+            }
+          : null,
+        mentor: mentor
+          ? {
+              name: mentor.name,
+              email: mentor.email,
+              profileImage: mentor.profileImage,
+            }
+          : null,
+      };
+    }),
+  );
+
+  return {
+    payments: enriched,
+    totalRevenue,
+    adminProfit,
+    totalPayments: payments.length,
+  };
+};
+
 export const paymentService = {
   createCheckoutSession,
   handleWebhook,
   getPaymentStatus,
   getEarnings,
+  getRevenue,
 };
