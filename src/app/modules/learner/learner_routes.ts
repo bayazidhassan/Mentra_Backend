@@ -4,9 +4,7 @@ import { learnerController } from './learner_controller';
 
 const router = Router();
 
-router.use(authenticate);
-
 router.get('/my-learners', authenticate, learnerController.getMyLearners);
-router.get('/all-learners', authenticate, learnerController.getAllLearners);
+router.get('/all-learners', learnerController.getAllLearners);
 
 export const learnerRoutes = router;
