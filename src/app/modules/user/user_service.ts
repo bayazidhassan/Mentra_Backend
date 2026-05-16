@@ -101,6 +101,7 @@ const updateProfile = async (
       if (payload.bio) mentor.bio = payload.bio;
       if (payload.experience) mentor.experience = payload.experience;
       if (payload.hourlyRate) mentor.hourlyRate = Number(payload.hourlyRate);
+      if (payload.skills) mentor.skills = JSON.parse(payload.skills);
       if (payload.availability) {
         const parsedAvailability = JSON.parse(payload.availability);
         // ✅ VALIDATE HERE
@@ -129,6 +130,7 @@ const updateProfile = async (
         ...baseUser,
         bio: mentorData.bio,
         experience: mentorData.experience,
+        skills: mentorData.skills,
         hourlyRate: mentorData.hourlyRate,
         availability: mentorData.availability,
       };

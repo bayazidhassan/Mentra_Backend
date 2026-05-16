@@ -364,6 +364,8 @@ const getTopMentors = async () => {
         email: user?.email ?? '',
         profileImage: user?.profileImage ?? null,
         bio: mentor.bio ?? null,
+        skills: mentor.skills ?? [],
+        experience: mentor.experience ?? null,
         rating: mentor.rating,
         totalReviews: mentor.totalReviews,
         hourlyRate: mentor.hourlyRate ?? null,

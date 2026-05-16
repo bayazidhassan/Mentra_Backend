@@ -11,6 +11,7 @@ export type TAvailability = {
 export type TMentor = {
   userId: Types.ObjectId;
   bio?: string;
+  skills: string[];
   experience?: string;
   hourlyRate?: number;
   availability?: TAvailability[];

@@ -29,6 +29,10 @@ const mentorSchema = new Schema<TMentor>(
     bio: {
       type: String,
     },
+    skills: {
+      type: [String],
+      default: [],
+    },
     experience: {
       type: String,
     },
