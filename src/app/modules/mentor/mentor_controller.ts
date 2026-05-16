@@ -126,6 +126,23 @@ const updateAvailability: RequestHandler = async (req, res) => {
   }
 };
 
+const getTopMentors: RequestHandler = async (req, res) => {
+  try {
+    const data = await mentorService.getTopMentors();
+    res.status(200).json({
+      success: true,
+      message: 'Top mentors fetched.',
+      data,
+    });
+  } catch (err) {
+    res.status(500).json({
+      success: false,
+      message: (err as Error).message || 'Failed to fetched top mentors.',
+      data: null,
+    });
+  }
+};
+
 export const mentorController = {
   getMentors,
   getMentorById,
@@ -133,4 +150,5 @@ export const mentorController = {
   getMentorDashboardStats,
   getAvailability,
   updateAvailability,
+  getTopMentors,
 };

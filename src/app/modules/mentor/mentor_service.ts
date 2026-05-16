@@ -341,6 +341,40 @@ const updateAvailability = async (
   return mentor;
 };
 
+const getTopMentors = async () => {
+  const mentors = await Mentor.find({ isApproved: true, rating: { $gt: 0 } })
+    .sort({ rating: -1, totalReviews: -1 })
+    .limit(6)
+    .lean();
+
+  const enriched = await Promise.all(
+    mentors.map(async (mentor) => {
+      const user = await User.findById(mentor.userId)
+        .select('name email profileImage')
+        .lean();
+
+      const completedSessions = await Session.countDocuments({
+        mentor: mentor.userId,
+        status: 'completed',
+      });
+
+      return {
+        _id: mentor._id.toString(),
+        name: user?.name ?? '',
+        email: user?.email ?? '',
+        profileImage: user?.profileImage ?? null,
+        bio: mentor.bio ?? null,
+        rating: mentor.rating,
+        totalReviews: mentor.totalReviews,
+        hourlyRate: mentor.hourlyRate ?? null,
+        completedSessions,
+      };
+    }),
+  );
+
+  return enriched;
+};
+
 export const mentorService = {
   getMentors,
   getMentorById,
@@ -348,4 +382,5 @@ export const mentorService = {
   getMentorDashboardStats,
   getAvailability,
   updateAvailability,
+  getTopMentors,
 };
