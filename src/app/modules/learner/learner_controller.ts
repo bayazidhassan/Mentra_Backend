@@ -40,7 +40,25 @@ const getAllLearners: RequestHandler = async (req, res) => {
   }
 };
 
+const getTopLearners: RequestHandler = async (req, res) => {
+  try {
+    const data = await learnerService.getTopLearners();
+    res.status(200).json({
+      success: true,
+      message: 'Top learners fetched.',
+      data,
+    });
+  } catch (err) {
+    res.status(500).json({
+      success: false,
+      message: (err as Error).message || 'Failed to fetched top learners.',
+      data: null,
+    });
+  }
+};
+
 export const learnerController = {
   getMyLearners,
   getAllLearners,
+  getTopLearners,
 };

@@ -16,7 +16,7 @@ router.patch(
 
 // Public routes
 router.get('/', mentorController.getMentors);
-router.get('/topMentors', mentorController.getTopMentors);
+router.get('/top-mentors', mentorController.getTopMentors);
 router.get('/:id', mentorController.getMentorById);
 
 export const mentorRoutes = router;

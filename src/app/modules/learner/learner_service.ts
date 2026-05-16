@@ -1,6 +1,7 @@
 import { Types } from 'mongoose';
 import { Session } from '../session/session_model';
 import { User } from '../user/user_model';
+import { Learner } from './learner_model';
 
 // ─── getMyLearners ────────────────────────────────────────────────────────────
 const getMyLearners = async (mentorUserId: string) => {
@@ -79,7 +80,40 @@ const getAllLearners = async ({
   };
 };
 
+const getTopLearners = async () => {
+  const learners = await Learner.find({
+    $or: [
+      { completedSessionsCount: { $gt: 0 } },
+      { completedRoadmapsCount: { $gt: 0 } },
+    ],
+  })
+    .sort({ completedSessionsCount: -1, completedRoadmapsCount: -1 })
+    .limit(6)
+    .lean();
+
+  const enriched = await Promise.all(
+    learners.map(async (learner) => {
+      const user = await User.findById(learner.userId)
+        .select('name email profileImage')
+        .lean();
+
+      return {
+        _id: learner._id.toString(),
+        name: user?.name ?? '',
+        email: user?.email ?? '',
+        profileImage: user?.profileImage ?? null,
+        completedSessions: learner.completedSessionsCount,
+        completedRoadmaps: learner.completedRoadmapsCount,
+        skills: learner.skills ?? [],
+      };
+    }),
+  );
+
+  return enriched;
+};
+
 export const learnerService = {
   getMyLearners,
   getAllLearners,
+  getTopLearners,
 };
