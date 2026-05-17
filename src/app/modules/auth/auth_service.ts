@@ -11,6 +11,7 @@ import {
 import { sendToEmail } from '../../utils/sendToEmail';
 import { Learner } from '../learner/learner_model';
 import { Mentor } from '../mentor/mentor_model';
+import { createNotification } from '../notification/notification_service';
 import { TUser } from '../user/user_interface';
 import { User } from '../user/user_model';
 
@@ -98,6 +99,20 @@ const verifyEmail = async (token: string) => {
 
   user.isVerified = true;
   await user.save();
+
+  // Notify admin if mentor registered
+  if (user.role === 'mentor') {
+    const adminUser = await User.findOne({ role: 'admin' }).lean();
+    if (adminUser) {
+      await createNotification({
+        userId: adminUser._id.toString(),
+        type: 'system',
+        title: 'New mentor registration',
+        message: `${user.name} has registered as a mentor and is waiting for approval.`,
+        actionUrl: '/dashboard/admin/mentors',
+      });
+    }
+  }
 
   return user;
 };
@@ -281,6 +296,19 @@ const setRole = async (userId: string, role: 'learner' | 'mentor') => {
 
     await session.commitTransaction();
     session.endSession();
+
+    if (role === 'mentor') {
+      const adminUser = await User.findOne({ role: 'admin' }).lean();
+      if (adminUser) {
+        await createNotification({
+          userId: adminUser._id.toString(),
+          type: 'system',
+          title: 'New mentor registration',
+          message: `${user.name} has registered as a mentor via Google and is waiting for approval.`,
+          actionUrl: '/dashboard/admin/mentors',
+        });
+      }
+    }
 
     const accessToken = createAccessToken({
       id: user._id.toString(),
