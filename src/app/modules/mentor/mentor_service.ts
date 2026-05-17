@@ -143,6 +143,7 @@ const getSuggestedMentors = async (
         profileImage: user.profileImage,
         bio: m.bio ?? '',
         experience: m.experience ?? '',
+        skills: m.skills ?? [],
         hourlyRate: m.hourlyRate,
         rating: m.rating,
         totalReviews: m.totalReviews,
@@ -173,12 +174,13 @@ ${JSON.stringify(
     id: m!.id,
     bio: m!.bio,
     experience: m!.experience,
+    skills: m!.skills,
   })),
   null,
   2,
 )}
 
-Score each mentor from 1 to 10 based on how well their bio and experience matches the learner's goal and roadmap title. Only include mentors with a score of 6 or above. Return them sorted by score descending.
+Score each mentor from 1 to 10 based on how well their bio, experience and skills matches the learner's goal and roadmap title. Only include mentors with a score of 6 or above. Return them sorted by score descending.
 
 Return ONLY a valid JSON array with this exact structure:
 [
