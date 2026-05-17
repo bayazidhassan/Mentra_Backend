@@ -145,6 +145,19 @@ const handleWebhook = async (rawBody: Buffer, signature: string) => {
       message: 'A learner has paid for their session with you.',
       actionUrl: '/sessions',
     });
+
+    // Notify admin
+    const adminUser = await User.findOne({ role: 'admin' }).lean();
+    if (adminUser) {
+      const payment = await Payment.findById(paymentId).lean();
+      await createNotification({
+        userId: adminUser._id.toString(),
+        type: 'payment',
+        title: 'New payment received',
+        message: `A learner completed a session payment of $${payment?.amount?.toFixed(2) ?? '0.00'}.`,
+        actionUrl: '/dashboard/admin/revenue',
+      });
+    }
   }
 
   // Handle failed payment
