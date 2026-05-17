@@ -346,7 +346,6 @@ const updateAvailability = async (
 const getTopMentors = async () => {
   const mentors = await Mentor.find({ isApproved: true, rating: { $gt: 0 } })
     .sort({ rating: -1, totalReviews: -1 })
-    .limit(6)
     .lean();
 
   const enriched = await Promise.all(

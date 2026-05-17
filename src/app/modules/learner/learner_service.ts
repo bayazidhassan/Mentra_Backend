@@ -88,7 +88,6 @@ const getTopLearners = async () => {
     ],
   })
     .sort({ completedSessionsCount: -1, completedRoadmapsCount: -1 })
-    .limit(6)
     .lean();
 
   const enriched = await Promise.all(
