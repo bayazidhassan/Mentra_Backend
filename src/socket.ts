@@ -112,9 +112,10 @@ export const initSocket = (httpServer: HttpServer) => {
           // Emit to conversation room (both sender + receiver if online)
           ioInstance!.to(conversationId).emit('new_message', messageData);
 
-          // Also emit to personal rooms so conversation list updates everywhere
-          ioInstance!.to(`user:${userId}`).emit('new_message', messageData);
-          ioInstance!.to(`user:${receiverId}`).emit('new_message', messageData);
+          // Emit to receiver's personal room for conversation list update
+          ioInstance!
+            .to(`user:${receiverId}`)
+            .emit('conversation_update', messageData);
 
           // Emit unread badge to receiver's personal room
           ioInstance!.to(`user:${receiverId}`).emit('unread_message', {
